@@ -19,7 +19,6 @@ export default function LoginScreen() {
     }
     setError("");
     console.log("Logging in with", email);
-    router.push("/explore");
   };
 
   return (
