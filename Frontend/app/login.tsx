@@ -12,13 +12,36 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       setError("Please enter both email and password");
       return;
     }
-    setError("");
-    console.log("Logging in with", email);
+
+    try {
+      const response = await fetch("http://localhost:5000/user/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle errors from the backend
+        setError(data.message || "Login failed");
+        return;
+      }
+
+      // Login successful
+      console.log("Login successful:", data);
+      router.push("/(tabs)");
+    } catch (error) {
+      console.error("Error during login:", error);
+      setError("An error occurred. Please try again.");
+    }
   };
 
   return (

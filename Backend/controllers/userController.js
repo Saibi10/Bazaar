@@ -1,4 +1,5 @@
 const User = require('../models/user');
+const bcrypt = require('bcryptjs');
 
 // Create a new user
 const createUser = async (req, res) => {
@@ -22,4 +23,28 @@ const getUsers = async (req, res) => {
     }
 };
 
-module.exports = { createUser, getUsers };
+// Login a single user
+const loginUser = async (req, res) => {
+    const { email, password } = req.body;
+
+    try {
+        // Find the user by email
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid email or password' });
+        }
+
+        // Compare the provided password with the hashed password in the database
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Invalid email or password' });
+        }
+
+        // Login successful
+        res.status(200).json({ message: 'Login successful', user });
+    } catch (error) {
+        res.status(500).json({ message: 'Error logging in', error: error.message });
+    }
+};
+
+module.exports = { createUser, getUsers, loginUser };

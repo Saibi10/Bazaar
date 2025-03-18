@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { StyleSheet, TextInput, TouchableOpacity, View, Image } from "react-native";
+import { StyleSheet, TextInput, TouchableOpacity, View, Image, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -10,12 +10,14 @@ export default function SignupScreen() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSignup = () => {
-    if (!name || !email || !password || !confirmPassword) {
+  const handleSignup = async () => {
+    if (!name || !email || !username || !password || !confirmPassword) {
       setError("Please fill out all fields");
       return;
     }
@@ -23,9 +25,34 @@ export default function SignupScreen() {
       setError("Passwords do not match");
       return;
     }
+
+    setLoading(true);
     setError("");
-    console.log("Signing up with", name, email);
-    router.push("/login");
+
+    try {
+      const response = await fetch("http://localhost:5000/user/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, username, email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || "Signup failed");
+        return;
+      }
+
+      console.log("Signup successful:", data);
+      router.push("/login");
+    } catch (error) {
+      console.error("Error during signup:", error);
+      setError("An error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -40,6 +67,13 @@ export default function SignupScreen() {
         placeholderTextColor="white"
         value={name}
         onChangeText={setName}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Username"
+        placeholderTextColor="white"
+        value={username}
+        onChangeText={setUsername}
       />
       <TextInput
         style={styles.input}
@@ -68,8 +102,12 @@ export default function SignupScreen() {
       />
       {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
 
-      <TouchableOpacity style={styles.button} onPress={handleSignup}>
-        <ThemedText style={styles.buttonText}>Sign Up</ThemedText>
+      <TouchableOpacity style={styles.button} onPress={handleSignup} disabled={loading}>
+        {loading ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <ThemedText style={styles.buttonText}>Sign Up</ThemedText>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => router.push("/login")}>
@@ -98,7 +136,7 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     borderRadius: 8,
     marginTop: 12,
-    color: "white", /* Ensure text input color is white */
+    color: "white",
   },
   button: {
     backgroundColor: "#6C5CE7",
