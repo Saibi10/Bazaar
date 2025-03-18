@@ -51,7 +51,7 @@ export default function LoginScreen() {
         <ThemedText style={styles.buttonText}>Login</ThemedText>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push("/explore")}>
+      <TouchableOpacity onPress={() => router.push("/signUp")}>
         <ThemedText style={styles.signUpText}>Don't have an account? Sign Up</ThemedText>
       </TouchableOpacity>
     </ThemedView>
