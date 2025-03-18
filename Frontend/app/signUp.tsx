@@ -30,7 +30,7 @@ export default function SignupScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <Image source={require("@/assets/images/partial-react-logo.png")} style={styles.logo} />
+      <Image source={require("@/assets/images/logo.png")} style={styles.logo} />
       <ThemedText type="title">Create an Account</ThemedText>
       <ThemedText>Sign up to get started</ThemedText>
 
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     color: "white", /* Ensure text input color is white */
   },
   button: {
-    backgroundColor: "#007BFF",
+    backgroundColor: "#6C5CE7",
     padding: 12,
     borderRadius: 8,
     marginTop: 20,
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   },
   signUpText: {
     marginTop: 16,
-    color: "#007BFF",
+    color: "#6C5CE7",
   },
   errorText: {
     color: "red",
