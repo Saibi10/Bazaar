@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import {
     View,
     Text,
@@ -10,10 +10,20 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from "expo-router";
-
+import { UserContext } from '../context/userContext';
 
 export default function ProfileScreen() {
     const insets = useSafeAreaInsets();
+    const router = useRouter();
+    const context = useContext(UserContext);
+
+    // Debugging: Check if context is undefined
+    if (!context) {
+        console.error("UserContext is undefined. Make sure the provider is properly set up.");
+        return null; // Or show a loading spinner
+    }
+
+    const { user, token, logout } = context;
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -31,10 +41,27 @@ export default function ProfileScreen() {
                         <Ionicons name="person" size={40} color="#6C5CE7" />
                     </View>
                     <View style={styles.profileInfo}>
-                        <Text style={styles.profileName}>Guest User</Text>
-                        <TouchableOpacity style={styles.loginButton}>
-                            <Text style={styles.loginButtonText}>Login / Register</Text>
-                        </TouchableOpacity>
+                        <Text style={styles.profileName}>
+                            {user ? user.name : "Guest User"}
+                        </Text>
+                        {user ? (
+                            <TouchableOpacity
+                                style={styles.logoutButton}
+                                onPress={() => {
+                                    logout();
+                                    router.push("/login");
+                                }}
+                            >
+                                <Text style={styles.loginButtonText}>Logout</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <TouchableOpacity
+                                style={styles.loginButton}
+                                onPress={() => router.push("/login")}
+                            >
+                                <Text style={styles.loginButtonText}>Login / Register</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
 
@@ -151,6 +178,13 @@ const styles = StyleSheet.create({
     },
     loginButton: {
         backgroundColor: '#6C5CE7',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 6,
+        alignSelf: 'flex-start',
+    },
+    logoutButton: {
+        backgroundColor: '#FF3B30',
         paddingVertical: 8,
         paddingHorizontal: 16,
         borderRadius: 6,

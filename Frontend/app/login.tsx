@@ -5,6 +5,7 @@ import { StyleSheet, TextInput, TouchableOpacity, View, Image } from "react-nati
 import { useRouter } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function LoginScreen() {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/user/login", {
+      const response = await fetch("http://localhost:5000/users/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -30,10 +31,13 @@ export default function LoginScreen() {
       const data = await response.json();
 
       if (!response.ok) {
-        // Handle errors from the backend
         setError(data.message || "Login failed");
         return;
       }
+
+      // Store the token and user data in AsyncStorage
+      await AsyncStorage.setItem('token', data.token);
+      await AsyncStorage.setItem('user', JSON.stringify(data.user));
 
       // Login successful
       console.log("Login successful:", data);
