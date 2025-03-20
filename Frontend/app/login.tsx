@@ -44,6 +44,12 @@ export default function LoginScreen() {
     }
   };
 
+  // Function to handle "Sign in as Guest"
+  const handleGuestLogin = () => {
+    console.log("Signed in as guest");
+    router.push("/(tabs)"); // Navigate to the main app interface
+  };
+
   return (
     <ThemedView style={styles.container}>
       <Image source={require("@/assets/images/logo.png")} style={styles.logo} />
@@ -71,6 +77,10 @@ export default function LoginScreen() {
 
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <ThemedText style={styles.buttonText}>Login</ThemedText>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.guestButton} onPress={handleGuestLogin}>
+        <ThemedText style={styles.guestButtonText}>Sign in as Guest</ThemedText>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => router.push("/signUp")}>
@@ -102,7 +112,7 @@ const styles = StyleSheet.create({
     color: "white",
   },
   button: {
-    backgroundColor: "#6C5CE7",
+    backgroundColor: "#9370DB",
     padding: 12,
     borderRadius: 8,
     marginTop: 20,
@@ -113,9 +123,23 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
   },
+  guestButton: {
+    backgroundColor: "transparent",
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    width: "100%",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#9370DB",
+  },
+  guestButtonText: {
+    color: "#9370DB",
+    fontWeight: "bold",
+  },
   signUpText: {
     marginTop: 16,
-    color: "#6C5CE7",
+    color: "#9370DB",
   },
   errorText: {
     color: "red",

@@ -17,7 +17,7 @@ export default function AppLayout() {
           height: 60 + insets.bottom,
           paddingBottom: insets.bottom,
         },
-        tabBarActiveTintColor: '#6C5CE7',
+        tabBarActiveTintColor: '#9370DB',
         tabBarInactiveTintColor: '#8A8A8A',
         tabBarLabelStyle: {
           fontSize: 12,

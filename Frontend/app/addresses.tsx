@@ -16,7 +16,7 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:5000/user/addresses';
 
-const AddressScreen = ({ navigation }) => {
+const AddressScreen = () => {
     const router = useRouter();
     const [addresses, setAddresses] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
         marginTop: 80,
     },
     emptyTitle: {
-        fontSize: 18,
+        fontSize: 19,
         fontWeight: 'bold',
         color: '#fff',
         marginTop: 16,

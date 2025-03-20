@@ -24,13 +24,13 @@ const categories = [
 ];
 
 const exploreCategories = [
-  // { id: '1', title: 'Electronics', image: require('../assets/electronics.png'), color: '#6C5CE7' },
+  // { id: '1', title: 'Electronics', image: require('../assets/electronics.png'), color: '#9370DB' },
   // { id: '2', title: 'Fashion', image: require('../assets/fashion.png'), color: '#FF7675' },
   // { id: '3', title: 'Home & Living', image: require('../assets/home.png'), color: '#74B9FF' },
   // { id: '4', title: 'Beauty', image: require('../assets/beauty.png'), color: '#55EFC4' },
   // { id: '5', title: 'Toys', image: require('../assets/toys.png'), color: '#FDCB6E' },
   // { id: '6', title: 'Sports', image: require('../assets/sports.png'), color: '#E17055' },
-  { id: '1', title: 'Electronics', image: require('../../assets/images/emoji1.png'), color: '#6C5CE7' },
+  { id: '1', title: 'Electronics', image: require('../../assets/images/emoji1.png'), color: '#9370DB' },
   { id: '2', title: 'Fashion', image: require('../../assets/images/emoji2.png'), color: '#FF7675' },
   { id: '3', title: 'Home & Living', image: require('../../assets/images/emoji3.png'), color: '#74B9FF' },
   { id: '4', title: 'Beauty', image: require('../../assets/images/emoji4.png'), color: '#55EFC4' },
@@ -103,7 +103,7 @@ export default function HomeScreen() {
         {/* Banner */}
         <View style={styles.bannerContainer}>
           <Image
-            source={{ uri: 'https://via.placeholder.com/600x300/6C5CE7/FFFFFF?text=Special+Discount' }}
+            source={{ uri: 'https://via.placeholder.com/600x300/9370DB/FFFFFF?text=Special+Discount' }}
             style={styles.bannerImage}
             resizeMode="cover"
           />
@@ -121,10 +121,10 @@ export default function HomeScreen() {
         {/* Offers */}
         <TouchableOpacity style={styles.offersContainer}>
           <View style={styles.offerIconContainer}>
-            <Ionicons name="gift-outline" size={24} color="#6C5CE7" />
+            <Ionicons name="gift-outline" size={24} color="#9370DB" />
           </View>
           <Text style={styles.offersText}>2 offers are available for you!</Text>
-          <Ionicons name="chevron-forward" size={20} color="#6C5CE7" />
+          <Ionicons name="chevron-forward" size={20} color="#9370DB" />
         </TouchableOpacity>
 
         {/* Explore More */}
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#6C5CE7',
+    color: '#9370DB',
   },
   headerIcons: {
     flexDirection: 'row',
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1E1E1E',
   },
   selectedCategoryItem: {
-    backgroundColor: '#6C5CE7',
+    backgroundColor: '#9370DB',
   },
   categoryText: {
     color: '#FFFFFF',
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   offerIconContainer: {
-    backgroundColor: '#6C5CE720',
+    backgroundColor: '#9370DB20',
     borderRadius: 20,
     width: 40,
     height: 40,
