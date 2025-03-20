@@ -14,8 +14,6 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from "expo-router";
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/user/addresses';
-
 const AddressScreen = ({ navigation }) => {
     const router = useRouter();
     const [addresses, setAddresses] = useState([]);
@@ -45,7 +43,7 @@ const AddressScreen = ({ navigation }) => {
     const fetchAddresses = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`${API_URL}/addresses`);
+            const response = await axios.get(`http://localhost:5000/addresses`);
             setAddresses(response.data);
             setError(null);
         } catch (err) {
@@ -57,31 +55,50 @@ const AddressScreen = ({ navigation }) => {
     };
 
     const handleAddAddress = async () => {
+        // Validate required fields
         if (!name || !phoneNumber || !addressLine1 || !city || !state || !postalCode || !country) {
-            setError('Please fill all required fields');
+            setError('Please fill out all required fields');
             return;
         }
 
-        try {
-            const newAddress = {
-                type: addressType,
-                name,
-                phoneNumber,
-                addressLine1,
-                addressLine2,
-                city,
-                state,
-                postalCode,
-                country,
-            };
+        setLoading(true);
+        setError('');
 
-            await axios.post(`${API_URL}/addresses`, newAddress);
+        try {
+            const response = await fetch(`http://localhost:5000/addresses/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    type: addressType,
+                    name,
+                    phoneNumber,
+                    addressLine1,
+                    addressLine2,
+                    city,
+                    state,
+                    postalCode,
+                    country,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                setError(data.message || 'Failed to add address');
+                return;
+            }
+
+            console.log('Address added successfully:', data);
             setModalVisible(false);
             clearForm();
             fetchAddresses();
-        } catch (err) {
-            console.error('Error adding address:', err);
-            setError('Failed to add address. Please try again.');
+        } catch (error) {
+            console.error('Error during address submission:', error);
+            setError('An error occurred. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
