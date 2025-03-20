@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     color: "white",
   },
   button: {
-    backgroundColor: "#6C5CE7",
+    backgroundColor: "#9370DB",
     padding: 12,
     borderRadius: 8,
     marginTop: 20,
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   },
   signUpText: {
     marginTop: 16,
-    color: "#6C5CE7",
+    color: "#9370DB",
   },
   errorText: {
     color: "red",

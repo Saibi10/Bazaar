@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
         marginTop: 80,
     },
     emptyTitle: {
-        fontSize: 18,
+        fontSize: 19,
         fontWeight: 'bold',
         color: '#fff',
         marginTop: 16,

@@ -38,7 +38,7 @@ export default function ProfileScreen() {
                 {/* Profile Info */}
                 <View style={styles.profileSection}>
                     <View style={styles.avatarPlaceholder}>
-                        <Ionicons name="person" size={40} color="#6C5CE7" />
+                        <Ionicons name="person" size={40} color="#9370DB" />
                     </View>
                     <View style={styles.profileInfo}>
                         <Text style={styles.profileName}>
@@ -67,35 +67,41 @@ export default function ProfileScreen() {
 
                 {/* Menu Items */}
                 <View style={styles.menuSection}>
-                    <MenuItem
-                        icon="cart-outline"
-                        title="My Orders"
-                        subtitle="Track, return, or buy things again"
+                    <MenuItem 
+                        icon="cart-outline" 
+                        title="My Orders" 
+                        subtitle="Track, return, or buy things again" 
+                        route="/display-orders"
                     />
-                    <MenuItem
-                        icon="heart-outline"
-                        title="My Wishlist"
-                        subtitle="Your saved items"
+                    <MenuItem 
+                        icon="heart-outline" 
+                        title="My Wishlist" 
+                        subtitle="Your saved items" 
+                        route="/my-wishlist"
                     />
-                    <MenuItem
-                        icon="location-outline"
-                        title="My Addresses"
-                        subtitle="Your saved addresses"
+                    <MenuItem 
+                        icon="location-outline" 
+                        title="My Addresses" 
+                        subtitle="Your saved addresses" 
+                        route="/addresses"
                     />
-                    <MenuItem
-                        icon="seller-outline"
-                        title="Become a Seller"
-                        subtitle="Sell your Products"
+                    <MenuItem 
+                        icon="briefcase-outline" 
+                        title="My Products" 
+                        subtitle="Sell your products" 
+                        route="/my-products"
                     />
-                    <MenuItem
-                        icon="headset-outline"
-                        title="Help Center"
-                        subtitle="Help and support"
+                    <MenuItem 
+                        icon="headset-outline" 
+                        title="Help Center" 
+                        subtitle="Help and support" 
+                        route="/help"
                     />
-                    <MenuItem
-                        icon="settings-outline"
-                        title="Settings"
-                        subtitle="Privacy and logout"
+                    <MenuItem 
+                        icon="settings-outline" 
+                        title="Settings" 
+                        subtitle="Privacy and logout" 
+                        route="/settings"
                     />
                 </View>
 
@@ -108,19 +114,13 @@ export default function ProfileScreen() {
     );
 }
 
-function MenuItem({ icon, title, subtitle }) {
+function MenuItem({ icon, title, subtitle, route }) {
     const router = useRouter();
+
     return (
-        <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => {
-                if (title === "My Addresses") {
-                    router.push("../addresses");
-                }
-            }}
-        >
+        <TouchableOpacity style={styles.menuItem} onPress={() => router.push(route)}>
             <View style={styles.menuIconContainer}>
-                <Ionicons name={icon} size={24} color="#6C5CE7" />
+                <Ionicons name={icon} size={24} color="#9370DB" />
             </View>
             <View style={styles.menuTextContainer}>
                 <Text style={styles.menuTitle}>{title}</Text>
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     loginButton: {
-        backgroundColor: '#6C5CE7',
+        backgroundColor: '#9370DB',
         paddingVertical: 8,
         paddingHorizontal: 16,
         borderRadius: 6,
@@ -241,3 +241,4 @@ const styles = StyleSheet.create({
         color: '#8A8A8A',
     },
 });
+
