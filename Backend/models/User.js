@@ -25,6 +25,14 @@ const userSchema = new mongoose.Schema({
         enum: ['user', 'admin'],
         default: 'user',
     },
+    addresses: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Address',
+    }],
+    orders: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Order',
+    }],
 });
 
 // Hash password before saving

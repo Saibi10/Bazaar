@@ -9,6 +9,8 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from "expo-router";
+
 
 export default function ProfileScreen() {
     const insets = useSafeAreaInsets();
@@ -54,9 +56,9 @@ export default function ProfileScreen() {
                         subtitle="Your saved addresses"
                     />
                     <MenuItem
-                        icon="card-outline"
-                        title="Payment Methods"
-                        subtitle="Your saved payment methods"
+                        icon="seller-outline"
+                        title="Become a Seller"
+                        subtitle="Sell your Products"
                     />
                     <MenuItem
                         icon="headset-outline"
@@ -80,8 +82,16 @@ export default function ProfileScreen() {
 }
 
 function MenuItem({ icon, title, subtitle }) {
+    const router = useRouter();
     return (
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+                if (title === "My Addresses") {
+                    router.push("../addresses");
+                }
+            }}
+        >
             <View style={styles.menuIconContainer}>
                 <Ionicons name={icon} size={24} color="#6C5CE7" />
             </View>
