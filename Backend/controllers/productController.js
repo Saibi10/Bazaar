@@ -1,0 +1,95 @@
+const Product = require('../models/Product');
+const cloudinary = require('../config/cloudinary');
+const fs = require('fs');
+
+// Create a new product with image upload
+const createProduct = async (req, res) => {
+    try {
+        const { name, category, price, description, stock, brand } = req.body;
+
+        // Upload images to Cloudinary
+        const imageUrls = [];
+        for (const file of req.files) {
+            const result = await cloudinary.uploader.upload(file.path);
+            imageUrls.push(result.secure_url);
+
+            // Delete the temporary file after uploading to Cloudinary
+            fs.unlinkSync(file.path);
+        }
+
+        // Create the product
+        const product = new Product({
+            name,
+            pics_url: imageUrls,
+            category,
+            price,
+            description,
+            stock,
+            brand,
+        });
+        await product.save();
+
+        res.status(201).json({ message: 'Product created successfully', product });
+    } catch (error) {
+        res.status(400).json({ message: 'Error creating product', error: error.message });
+    }
+};
+
+// Get all products
+const getProducts = async (req, res) => {
+    try {
+        const products = await Product.find({});
+        res.status(200).json(products);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching products', error: error.message });
+    }
+};
+
+// Get a single product by ID
+const getProductById = async (req, res) => {
+    try {
+        const { productId } = req.params;
+        const product = await Product.findById(productId);
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+        res.status(200).json(product);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching product', error: error.message });
+    }
+};
+
+// Update a product
+const updateProduct = async (req, res) => {
+    try {
+        const { productId } = req.params;
+        const updateData = req.body;
+
+        const product = await Product.findByIdAndUpdate(productId, updateData, { new: true });
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        res.status(200).json({ message: 'Product updated successfully', product });
+    } catch (error) {
+        res.status(400).json({ message: 'Error updating product', error: error.message });
+    }
+};
+
+// Delete a product
+const deleteProduct = async (req, res) => {
+    try {
+        const { productId } = req.params;
+
+        const product = await Product.findByIdAndDelete(productId);
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        res.status(200).json({ message: 'Product deleted successfully' });
+    } catch (error) {
+        res.status(400).json({ message: 'Error deleting product', error: error.message });
+    }
+};
+
+module.exports = { createProduct, getProducts, getProductById, updateProduct, deleteProduct };
