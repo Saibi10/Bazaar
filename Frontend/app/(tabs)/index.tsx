@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -13,23 +13,13 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { UserContext } from '../context/userContext'; // Adjust the path as needed
 
 const { width } = Dimensions.get('window');
 
-const categories = [
-  { id: '1', title: 'All', icon: '🏠', selected: true },
-  { id: '2', title: 'Electronics', icon: '📱' },
-  { id: '3', title: 'Fashion', icon: '👔' },
-  { id: '4', title: 'Beauty', icon: '💄' },
-];
-
+// Sample categories
 const exploreCategories = [
-  // { id: '1', title: 'Electronics', image: require('../assets/electronics.png'), color: '#9370DB' },
-  // { id: '2', title: 'Fashion', image: require('../assets/fashion.png'), color: '#FF7675' },
-  // { id: '3', title: 'Home & Living', image: require('../assets/home.png'), color: '#74B9FF' },
-  // { id: '4', title: 'Beauty', image: require('../assets/beauty.png'), color: '#55EFC4' },
-  // { id: '5', title: 'Toys', image: require('../assets/toys.png'), color: '#FDCB6E' },
-  // { id: '6', title: 'Sports', image: require('../assets/sports.png'), color: '#E17055' },
   { id: '1', title: 'Electronics', image: require('../../assets/images/emoji1.png'), color: '#9370DB' },
   { id: '2', title: 'Fashion', image: require('../../assets/images/emoji2.png'), color: '#FF7675' },
   { id: '3', title: 'Home & Living', image: require('../../assets/images/emoji3.png'), color: '#74B9FF' },
@@ -38,10 +28,46 @@ const exploreCategories = [
   { id: '6', title: 'Sports', image: require('../../assets/images/emoji6.png'), color: '#E17055' },
 ];
 
-// Note: In a real app, you would need to create these assets or use appropriate images
+// Sample products
+const products = [
+  { id: '1', name: 'Smartphone', category: 'Electronics', price: '$699', image: 'https://via.placeholder.com/150' },
+  { id: '2', name: 'Laptop', category: 'Electronics', price: '$1299', image: 'https://via.placeholder.com/150' },
+  { id: '3', name: 'T-Shirt', category: 'Fashion', price: '$19.99', image: 'https://via.placeholder.com/150' },
+  { id: '4', name: 'Sofa', category: 'Home & Living', price: '$499', image: 'https://via.placeholder.com/150' },
+  { id: '5', name: 'Lipstick', category: 'Beauty', price: '$9.99', image: 'https://via.placeholder.com/150' },
+  { id: '6', name: 'Action Figure', category: 'Toys', price: '$14.99', image: 'https://via.placeholder.com/150' },
+  { id: '7', name: 'Football', category: 'Sports', price: '$29.99', image: 'https://via.placeholder.com/150' },
+  { id: '8', name: 'Headphones', category: 'Electronics', price: '$199', image: 'https://via.placeholder.com/150' },
+  { id: '9', name: 'Jeans', category: 'Fashion', price: '$49.99', image: 'https://via.placeholder.com/150' },
+  { id: '10', name: 'Table Lamp', category: 'Home & Living', price: '$29.99', image: 'https://via.placeholder.com/150' },
+];
 
-export default function HomeScreen() {
+export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const context = useContext(UserContext);
+
+  // Debugging: Check if context is undefined
+  if (!context) {
+    console.error("UserContext is undefined. Make sure the provider is properly set up.");
+    return null; // Or show a loading spinner
+  }
+
+  const { user, token } = context;
+
+  // Get random products (from any category)
+  const getRandomProducts = (count: number) => {
+    const shuffled = products.sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+  };
+
+  const randomProducts = getRandomProducts(4); // Display 4 random products
+
+  // Handle category press
+  const handleCategoryPress = (category: string) => {
+    const filteredProducts = products.filter((product) => product.category === category);
+    router.push({ pathname: '/category-products', params: { category, products: JSON.stringify(filteredProducts) } });
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -75,30 +101,6 @@ export default function HomeScreen() {
         />
       </View>
 
-      {/* Categories */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoriesContainer}
-      >
-        {categories.map((category) => (
-          <TouchableOpacity
-            key={category.id}
-            style={[
-              styles.categoryItem,
-              category.selected && styles.selectedCategoryItem,
-            ]}
-          >
-            <Text style={[
-              styles.categoryText,
-              category.selected && styles.selectedCategoryText,
-            ]}>
-              {category.icon} {category.title}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Banner */}
         <View style={styles.bannerContainer}>
@@ -131,11 +133,15 @@ export default function HomeScreen() {
         <View style={styles.exploreSection}>
           <Text style={styles.sectionTitle}>Explore More</Text>
 
+          {/* Categories */}
           <FlatList
             data={exploreCategories}
             numColumns={2}
             renderItem={({ item }) => (
-              <TouchableOpacity style={styles.exploreCategoryItem}>
+              <TouchableOpacity
+                style={styles.exploreCategoryItem}
+                onPress={() => handleCategoryPress(item.title)}
+              >
                 <View style={[styles.exploreCategoryImageContainer, { backgroundColor: item.color + '20' }]}>
                   <View style={[styles.exploreCategoryIcon, { backgroundColor: item.color }]}>
                     <Ionicons
@@ -155,7 +161,23 @@ export default function HomeScreen() {
                 <Text style={styles.exploreCategoryTitle}>{item.title}</Text>
               </TouchableOpacity>
             )}
-            keyExtractor={item => item.id}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+          />
+
+          {/* Random Products */}
+          <Text style={styles.sectionTitle}>Recommended for You</Text>
+          <FlatList
+            data={randomProducts}
+            numColumns={2}
+            renderItem={({ item }) => (
+              <View style={styles.productItem}>
+                <Image source={{ uri: item.image }} style={styles.productImage} />
+                <Text style={styles.productName}>{item.name}</Text>
+                <Text style={styles.productPrice}>{item.price}</Text>
+              </View>
+            )}
+            keyExtractor={(item) => item.id}
             scrollEnabled={false}
           />
         </View>
@@ -208,29 +230,6 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#FFFFFF',
     fontSize: 16,
-  },
-  categoriesContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-  },
-  categoryItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginHorizontal: 4,
-    borderRadius: 20,
-    backgroundColor: '#1E1E1E',
-  },
-  selectedCategoryItem: {
-    backgroundColor: '#9370DB',
-  },
-  categoryText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  selectedCategoryText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
   },
   bannerContainer: {
     marginHorizontal: 16,
@@ -342,5 +341,55 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#1E1E1E',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  modalContent: {
+    padding: 16,
+  },
+  productItem: {
+    width: (width - 48) / 2,
+    marginBottom: 16,
+    marginHorizontal: 4,
+    backgroundColor: '#2A2A2A',
+    borderRadius: 12,
+    padding: 12,
+  },
+  productImage: {
+    width: '100%',
+    height: 120,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  productName: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  productPrice: {
+    color: '#9370DB',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
