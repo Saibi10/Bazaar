@@ -1,6 +1,4 @@
-"use client"
-
-import { useState, useEffect, useContext } from "react"
+import { useState, useEffect } from "react"
 import {
   View,
   Text,
@@ -16,7 +14,7 @@ import { StatusBar } from "expo-status-bar"
 import { Ionicons } from "@expo/vector-icons"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useRouter } from "expo-router"
-import { UserContext } from "../context/userContext"
+import { useLocalSearchParams } from "expo-router";
 import axios from "axios"
 
 // Define the Address type based on the MongoDB schema
@@ -48,11 +46,18 @@ interface AddressFormData {
   isDefault: boolean
 }
 
+interface AddressScreenProps {
+  user?: {
+    _id: string;
+    // Add other user properties if needed
+  };
+  token?: string;
+}
+
 export default function AddressScreen() {
   const insets = useSafeAreaInsets()
+  const { user, token } = useLocalSearchParams();
   const router = useRouter()
-  // Use the context without type assertion since it's created without a default value
-  const userContext = useContext(UserContext)
 
   const [addresses, setAddresses] = useState<Address[]>([])
   const [loading, setLoading] = useState(true)
@@ -76,43 +81,22 @@ export default function AddressScreen() {
 
   // Fetch addresses when component mounts or when user/token changes
   useEffect(() => {
-    if (userContext && userContext.user && userContext.token) {
+    if (user && token) {
       fetchAddresses()
     } else {
       setLoading(false)
     }
-  }, [userContext])
-
-  // Render a loading state or error message if context is not available
-  if (!userContext) {
-      return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <StatusBar style="light" />
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>My Addresses</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#9370DB" />
-        </View>
-      </View>
-    )
-  }
-
-  const { user, token } = userContext
+  }, [user, token])
 
   // Fetch addresses from the backend
   const fetchAddresses = async () => {
-    if (!token) {
+    if (!token || !user) {
       setLoading(false)
       return
     }
 
     try {
       setLoading(true)
-      console.log(user._id);
       const response = await axios.get(`http://localhost:5000/addresses/${user._id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -146,70 +130,68 @@ export default function AddressScreen() {
 
   // Submit new address
   const handleSubmit = async () => {
-  if (!token || !user) {
-    Alert.alert("Error", "You must be logged in to add an address");
-    return;
-  }
+    if (!token || !user) {
+      Alert.alert("Error", "You must be logged in to add an address");
+      return;
+    }
 
-  // Validate required fields
-  const requiredFields: (keyof AddressFormData)[] = [
-    "name",
-    "phoneNumber",
-    "addressLine1",
-    "city",
-    "state",
-    "postalCode",
-    "country",
-  ];
+    // Validate required fields
+    const requiredFields: (keyof AddressFormData)[] = [
+      "name",
+      "phoneNumber",
+      "addressLine1",
+      "city",
+      "state",
+      "postalCode",
+      "country",
+    ];
 
-  const missingFields = requiredFields.filter((field) => !formData[field]);
+    const missingFields = requiredFields.filter((field) => !formData[field]);
 
-  if (missingFields.length > 0) {
-    Alert.alert("Missing Information", "Please fill in all required fields");
-    return;
-  }
+    if (missingFields.length > 0) {
+      Alert.alert("Missing Information", "Please fill in all required fields");
+      return;
+    }
 
-  formData.userId = user._id;
+    formData.userId = user._id;
 
-  try {
-    setSubmitting(true);
+    try {
+      setSubmitting(true);
 
-    // Stringify the form data
-    const jsonData = JSON.stringify(formData);
+      // Stringify the form data
+      const jsonData = JSON.stringify(formData);
 
-    console.log(jsonData)
+      // Send the request with the raw JSON data
+      await axios.post("http://localhost:5000/addresses", jsonData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-    // Send the request with the raw JSON data
-    await axios.post("http://localhost:5000/addresses", jsonData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json", // Set the content type to JSON
-      },
-    });
+      // Reset form and close modal
+      setFormData({
+        userId: "",
+        type: "home",
+        name: "",
+        phoneNumber: "",
+        addressLine1: "",
+        city: "",
+        state: "",
+        postalCode: "",
+        country: "",
+        isDefault: false,
+      });
 
-    // Reset form and close modal
-    setFormData({
-      userId: "",
-      type: "home",
-      name: "",
-      phoneNumber: "",
-      addressLine1: "",
-      city: "",
-      state: "",
-      postalCode: "",
-      country: "",
-      isDefault: false,
-    });
-
-    setModalVisible(false);
-    fetchAddresses(); // Refresh the address list
-  } catch (error) {
-    console.error("Error saving address:", error);
-    Alert.alert("Error", "Failed to save address");
-  } finally {
-    setSubmitting(false);
-  }
-};
+      setModalVisible(false);
+      fetchAddresses(); // Refresh the address list
+    } catch (error) {
+      console.error("Error saving address:", error);
+      Alert.alert("Error", "Failed to save address");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -217,7 +199,7 @@ export default function AddressScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.push("/(tabs)/profile")} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Addresses</Text>
@@ -285,26 +267,26 @@ export default function AddressScreen() {
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Address Type *</Text>
                 <TouchableOpacity
-                  style={styles.input}
-                  onPress={() => {
-                    Alert.alert("Select Address Type", "Choose the type of address", [
-                      { text: "Home", onPress: () => handleAddressTypeChange("home") },
-                      { text: "Work", onPress: () => handleAddressTypeChange("work") },
-                      { text: "Other", onPress: () => handleAddressTypeChange("other") },
-                      { text: "Cancel", style: "cancel" },
-                    ])
-                  }}
-                >
-                  <Text style={styles.inputText}>
-                    {addressType === "home"
-                      ? "Home"
-                      : addressType === "work"
+                    style={styles.input}
+                    onPress={() => {
+                        Alert.alert("Select Address Type", "Choose the type of address", [
+                        { text: "Home", onPress: () => handleAddressTypeChange("home") },
+                        { text: "Work", onPress: () => handleAddressTypeChange("work") },
+                        { text: "Other", onPress: () => handleAddressTypeChange("other") },
+                        { text: "Cancel", style: "cancel" },
+                        ]);
+                    }}
+                    >
+                    <Text style={styles.inputText}>
+                        {addressType === "home"
+                        ? "Home"
+                        : addressType === "work"
                         ? "Work"
                         : addressType === "other"
-                          ? "Other"
-                          : "Default"}
-                  </Text>
-                  <Ionicons name="chevron-down" size={20} color="#9370DB" />
+                        ? "Other"
+                        : "Select Address Type"} {/* Fallback text */}
+                    </Text>
+                    <Ionicons name="chevron-down" size={20} color="#9370DB" />
                 </TouchableOpacity>
               </View>
 
@@ -684,4 +666,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 })
-

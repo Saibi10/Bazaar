@@ -77,7 +77,7 @@ export default function OrdersScreen() {
                     // Not logged in state
                     <View style={styles.emptyStateContainer}>
                         <View style={styles.emptyStateImageContainer}>
-                            <Ionicons name="cube-outline" size={100} color="#6C5CE7" />
+                            <Ionicons name="cube-outline" size={100} color="#9370DB" />
                         </View>
                         <Text style={styles.emptyStateTitle}>
                             Please login to view your orders
@@ -131,7 +131,7 @@ export default function OrdersScreen() {
                     // Returned orders
                     <View style={styles.emptyStateContainer}>
                         <View style={styles.emptyStateImageContainer}>
-                            <Ionicons name="return-down-back-outline" size={80} color="#6C5CE7" />
+                            <Ionicons name="return-down-back-outline" size={80} color="#9370DB" />
                         </View>
                         <Text style={styles.emptyStateTitle}>
                             No returned orders
@@ -153,7 +153,7 @@ function OrderCard({ orderNumber, date, items, total, status, isDelivered = fals
                 <Text style={styles.orderNumber}>{orderNumber}</Text>
                 <View style={[
                     styles.statusBadge,
-                    { backgroundColor: isDelivered ? '#55EFC4' : '#6C5CE7' }
+                    { backgroundColor: isDelivered ? '#55EFC4' : '#9370DB' }
                 ]}>
                     <Text style={styles.statusText}>{status}</Text>
                 </View>
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     logoText: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#6C5CE7',
+        color: '#9370DB',
     },
     headerIcons: {
         flexDirection: 'row',
@@ -220,13 +220,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: '#6C5CE7',
+        borderColor: '#9370DB',
     },
     activeTabButton: {
-        backgroundColor: '#6C5CE7',
+        backgroundColor: '#9370DB',
     },
     tabButtonText: {
-        color: '#6C5CE7',
+        color: '#9370DB',
         fontWeight: '600',
     },
     activeTabButtonText: {
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     loginButton: {
-        backgroundColor: '#6C5CE7',
+        backgroundColor: '#9370DB',
         paddingVertical: 14,
         paddingHorizontal: 32,
         borderRadius: 8,
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     orderActionButton: {
-        backgroundColor: '#6C5CE7',
+        backgroundColor: '#9370DB',
         paddingVertical: 10,
         paddingHorizontal: 16,
         borderRadius: 8,
@@ -337,10 +337,10 @@ const styles = StyleSheet.create({
     secondaryActionButton: {
         backgroundColor: 'transparent',
         borderWidth: 1,
-        borderColor: '#6C5CE7',
+        borderColor: '#9370DB',
     },
     secondaryActionButtonText: {
-        color: '#6C5CE7',
+        color: '#9370DB',
         fontWeight: '600',
     },
 });

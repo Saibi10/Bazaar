@@ -68,41 +68,36 @@ export default function ProfileScreen() {
                 {/* Menu Items */}
                 <View style={styles.menuSection}>
                     <MenuItem 
-                        icon="cart-outline" 
-                        title="My Orders" 
-                        subtitle="Track, return, or buy things again" 
-                        route="/display-orders"
-                    />
+                        icon="cart-outline"
+                        title="My Orders"
+                        subtitle="Track, return, or buy things again"
+                        route="/display-orders" onPress={undefined}                    />
                     <MenuItem 
-                        icon="heart-outline" 
-                        title="My Wishlist" 
-                        subtitle="Your saved items" 
-                        route="/my-wishlist"
-                    />
+                        icon="heart-outline"
+                        title="My Wishlist"
+                        subtitle="Your saved items"
+                        route="/my-wishlist" onPress={undefined}                    />
                     <MenuItem 
-                        icon="location-outline" 
-                        title="My Addresses" 
-                        subtitle="Your saved addresses" 
+                        icon="location-outline"
+                        title="My Addresses"
+                        subtitle="Your saved addresses"
                         route="/addresses"
-                    />
+                        onPress={() => router.push({ pathname: "/addresses", params: { user, token } })}                    />
                     <MenuItem 
-                        icon="briefcase-outline" 
-                        title="My Products" 
-                        subtitle="Sell your products" 
-                        route="/my-products"
-                    />
+                        icon="briefcase-outline"
+                        title="My Products"
+                        subtitle="Sell your products"
+                        onPress={() => router.push({ pathname: "/my-products", params: { user, token } })} route="/my-products"                   />
                     <MenuItem 
-                        icon="headset-outline" 
-                        title="Help Center" 
-                        subtitle="Help and support" 
-                        route="/help"
-                    />
+                        icon="headset-outline"
+                        title="Help Center"
+                        subtitle="Help and support"
+                        route="/help" onPress={undefined}                    />
                     <MenuItem 
-                        icon="settings-outline" 
-                        title="Settings" 
-                        subtitle="Privacy and logout" 
-                        route="/settings"
-                    />
+                        icon="settings-outline"
+                        title="Settings"
+                        subtitle="Privacy and logout"
+                        route="/settings" onPress={undefined}                    />
                 </View>
 
                 {/* App Info */}
@@ -114,11 +109,19 @@ export default function ProfileScreen() {
     );
 }
 
-function MenuItem({ icon, title, subtitle, route }) {
+function MenuItem({ icon, title, subtitle, route, onPress }) {
     const router = useRouter();
 
+    const handlePress = () => {
+        if (onPress) {
+            onPress();
+        } else {
+            router.push(route);
+        }
+    };
+
     return (
-        <TouchableOpacity style={styles.menuItem} onPress={() => router.push(route)}>
+        <TouchableOpacity style={styles.menuItem} onPress={handlePress}>
             <View style={styles.menuIconContainer}>
                 <Ionicons name={icon} size={24} color="#9370DB" />
             </View>
@@ -241,4 +244,3 @@ const styles = StyleSheet.create({
         color: '#8A8A8A',
     },
 });
-
