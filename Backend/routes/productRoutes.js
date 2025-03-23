@@ -1,5 +1,5 @@
 const express = require('express');
-const { createProduct, getProducts, getProductById, updateProduct, deleteProduct } = require('../controllers/productController');
+const { createProduct, getProducts, getProductByUserId, updateProduct, deleteProduct, getProductById } = require('../controllers/productController');
 const upload = require('../config/multer');
 
 const router = express.Router();
@@ -8,10 +8,12 @@ const router = express.Router();
 router.post('/', upload.array('images', 5), createProduct); // 'images' is the field name, max 5 files
 // GET /products - Get all products
 router.get('/', getProducts);
-// GET /products/:productId - Get a single product by ID
-router.get('/:productId', getProductById);
+// GET /products/:userId - Get products by User ID
+router.get('/user/:userId', getProductByUserId);
 // PUT /products/:productId - Update a product
 router.put('/:productId', updateProduct);
+// PUT /products/:productId - getProductById
+router.get('/:productId', getProductById);
 // DELETE /products/:productId - Delete a product
 router.delete('/:productId', deleteProduct);
 
