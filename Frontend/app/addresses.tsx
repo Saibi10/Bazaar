@@ -10,11 +10,11 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native"
+import { UserContext } from "./context/userContext"
 import { StatusBar } from "expo-status-bar"
 import { Ionicons } from "@expo/vector-icons"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useRouter } from "expo-router"
-import { useLocalSearchParams } from "expo-router";
 import axios from "axios"
 
 // Define the Address type based on the MongoDB schema
@@ -86,7 +86,27 @@ export default function AddressScreen() {
     } else {
       setLoading(false)
     }
-  }, [user, token])
+  }, [userContext])
+
+  // Render a loading state or error message if context is not available
+  if (!userContext) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <StatusBar style="light" />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>My Addresses</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#9370DB" />
+        </View>
+      </View>
+    )
+  }
+
+  const { user, token } = userContext
 
   // Fetch addresses from the backend
   const fetchAddresses = async () => {
@@ -100,7 +120,7 @@ export default function AddressScreen() {
       const response = await axios.get(`http://localhost:5000/addresses/${user._id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
-        },  
+        },
       })
       setAddresses(response.data)
     } catch (error) {
@@ -161,11 +181,13 @@ export default function AddressScreen() {
       // Stringify the form data
       const jsonData = JSON.stringify(formData);
 
+      console.log(jsonData)
+
       // Send the request with the raw JSON data
       await axios.post("http://localhost:5000/addresses", jsonData, {
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+          "Content-Type": "application/json", // Set the content type to JSON
         },
       });
 
@@ -194,6 +216,7 @@ export default function AddressScreen() {
   };
 
   return (
+
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar style="light" />
 

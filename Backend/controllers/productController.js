@@ -5,7 +5,7 @@ const fs = require('fs');
 // Create a new product with image upload
 const createProduct = async (req, res) => {
     try {
-        const { name, category, price, description, stock, brand } = req.body;
+        const { name, category, price, description, stock, brand, userId } = req.body;
 
         // Upload images to Cloudinary
         const imageUrls = [];
@@ -19,6 +19,7 @@ const createProduct = async (req, res) => {
 
         // Create the product
         const product = new Product({
+            userId,
             name,
             pics_url: imageUrls,
             category,
@@ -35,6 +36,20 @@ const createProduct = async (req, res) => {
     }
 };
 
+//Get Product by Product Id
+const getProductById = async (req, res) => {
+    try {
+        const { productId } = req.params;
+        const product = await Product.findById(productId);
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+        res.status(200).json(product);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching product', error: error.message });
+    }
+};
+
 // Get all products
 const getProducts = async (req, res) => {
     try {
@@ -46,16 +61,18 @@ const getProducts = async (req, res) => {
 };
 
 // Get a single product by ID
-const getProductById = async (req, res) => {
+const getProductByUserId = async (req, res) => {
     try {
-        const { productId } = req.params;
-        const product = await Product.findById(productId);
-        if (!product) {
-            return res.status(404).json({ message: 'Product not found' });
+        const { userId } = req.params; // Extract userId from request parameters
+        const products = await Product.find({ userId: userId }); // Find products associated with the userId
+
+        if (products.length === 0) {
+            return res.status(404).json({ message: 'No products found for this user' });
         }
-        res.status(200).json(product);
+
+        res.status(200).json(products); // Return the list of products
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching product', error: error.message });
+        res.status(500).json({ message: 'Error fetching products', error: error.message });
     }
 };
 
@@ -92,4 +109,4 @@ const deleteProduct = async (req, res) => {
     }
 };
 
-module.exports = { createProduct, getProducts, getProductById, updateProduct, deleteProduct };
+module.exports = { createProduct, getProducts, getProductByUserId, getProductById, updateProduct, deleteProduct };

@@ -4,7 +4,6 @@ import {
     Text,
     StyleSheet,
     TouchableOpacity,
-    Image,
     ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -21,10 +20,9 @@ const orderStatuses = [
 export default function OrdersScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [activeTab, setActiveTab] = useState('In-progress');
+    const [activeTab, setActiveTab] = useState<string>('In-progress'); // Explicit type for activeTab
 
-    const handleTabPress = (tabTitle) => {
+    const handleTabPress = (tabTitle: string) => { // Explicit type for tabTitle
         setActiveTab(tabTitle);
     };
 
@@ -72,24 +70,10 @@ export default function OrdersScreen() {
                     </TouchableOpacity>
                 ))}
             </View>
+
+            {/* Orders List */}
             <ScrollView contentContainerStyle={styles.contentContainer}>
-                {!isLoggedIn ? (
-                    // Not logged in state
-                    <View style={styles.emptyStateContainer}>
-                        <View style={styles.emptyStateImageContainer}>
-                            <Ionicons name="cube-outline" size={100} color="#9370DB" />
-                        </View>
-                        <Text style={styles.emptyStateTitle}>
-                            Please login to view your orders
-                        </Text>
-                        <TouchableOpacity
-                            style={styles.loginButton}
-                            onPress={() => router.push("../login")}
-                        >
-                            <Text style={styles.loginButtonText}>Login</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : activeTab === 'In-progress' ? (
+                {activeTab === 'In-progress' ? (
                     // In-progress orders (sample data)
                     <View style={styles.ordersContainer}>
                         <OrderCard
@@ -146,7 +130,17 @@ export default function OrdersScreen() {
     );
 }
 
-function OrderCard({ orderNumber, date, items, total, status, isDelivered = false }) {
+// Define the props for the OrderCard component
+interface OrderCardProps {
+    orderNumber: string;
+    date: string;
+    items: number;
+    total: string;
+    status: string;
+    isDelivered?: boolean;
+}
+
+function OrderCard({ orderNumber, date, items, total, status, isDelivered = false }: OrderCardProps) {
     return (
         <View style={styles.orderCard}>
             <View style={styles.orderHeader}>
@@ -257,20 +251,6 @@ const styles = StyleSheet.create({
         color: '#8A8A8A',
         textAlign: 'center',
         marginBottom: 24,
-    },
-    loginButton: {
-        backgroundColor: '#9370DB',
-        paddingVertical: 14,
-        paddingHorizontal: 32,
-        borderRadius: 8,
-        width: '100%',
-        alignItems: 'center',
-        marginTop: 16,
-    },
-    loginButtonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: 'bold',
     },
     ordersContainer: {
         flex: 1,

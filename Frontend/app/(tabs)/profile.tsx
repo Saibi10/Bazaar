@@ -67,37 +67,42 @@ export default function ProfileScreen() {
 
                 {/* Menu Items */}
                 <View style={styles.menuSection}>
-                    <MenuItem 
+                    <MenuItem
                         icon="cart-outline"
                         title="My Orders"
                         subtitle="Track, return, or buy things again"
-                        route="/display-orders" onPress={undefined}                    />
-                    <MenuItem 
+                        route="/orders"
+                    />
+                    <MenuItem
                         icon="heart-outline"
                         title="My Wishlist"
                         subtitle="Your saved items"
-                        route="/my-wishlist" onPress={undefined}                    />
-                    <MenuItem 
+                        route="/my-wishlist"
+                    />
+                    <MenuItem
                         icon="location-outline"
                         title="My Addresses"
                         subtitle="Your saved addresses"
                         route="/addresses"
-                        onPress={() => router.push({ pathname: "/addresses", params: { user, token } })}                    />
-                    <MenuItem 
+                    />
+                    <MenuItem
                         icon="briefcase-outline"
                         title="My Products"
                         subtitle="Sell your products"
-                        onPress={() => router.push({ pathname: "/my-products", params: { user, token } })} route="/my-products"                   />
-                    <MenuItem 
+                        route="/my-products"
+                    />
+                    <MenuItem
                         icon="headset-outline"
                         title="Help Center"
                         subtitle="Help and support"
-                        route="/help" onPress={undefined}                    />
-                    <MenuItem 
+                        route="/help"
+                    />
+                    <MenuItem
                         icon="settings-outline"
                         title="Settings"
                         subtitle="Privacy and logout"
-                        route="/settings" onPress={undefined}                    />
+                        route="/settings"
+                    />
                 </View>
 
                 {/* App Info */}

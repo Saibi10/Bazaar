@@ -12,25 +12,32 @@ import {
   ActivityIndicator,
   Image,
   Alert,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import axios from "axios";
-import { useRouter } from "expo-router";
-import * as ImagePicker from "expo-image-picker";
-import { useLocalSearchParams } from "expo-router";
+} from "react-native"
+import { UserContext } from "./context/userContext"
+import { Ionicons } from "@expo/vector-icons"
+import axios from "axios"
+import { useRouter } from "expo-router"
+import * as ImagePicker from "expo-image-picker"
 
 const API_URL = "http://localhost:5000/products";
 
 const MyProductsScreen = () => {
-  const { user, token } = useLocalSearchParams();
-  const router = useRouter();
+  const router = useRouter()
+  const userContext = useContext(UserContext)
 
+  if (!userContext) {
+    console.error("UserContext is undefined. Make sure the provider is properly set up.");
+    return null; // Or show a loading spinner
+  }
+
+  const { user, token } = userContext
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [loadingProducts, setLoadingProducts] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [products, setProducts] = useState<any[]>([]);
+  const [showImageUploader, setShowImageUploader] = useState(true); // Set this based on your condition
+  const [modalVisible, setModalVisible] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [loadingProducts, setLoadingProducts] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [products, setProducts] = useState<any[]>([])
 
   // Product form state
   const [productName, setProductName] = useState("");
@@ -51,7 +58,17 @@ const MyProductsScreen = () => {
     } else {
       setLoadingProducts(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated])
+
+  // Request permission to access the camera and photo library
+  useEffect(() => {
+    ; (async () => {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+      if (status !== "granted") {
+        alert("Sorry, we need camera roll permissions to make this work!")
+      }
+    })()
+  }, [])
 
   // Fetch products from the API
   const fetchProducts = async () => {
@@ -59,7 +76,7 @@ const MyProductsScreen = () => {
 
     setLoadingProducts(true);
     try {
-      const response = await axios.get(API_URL, {
+      const response = await axios.get(`${API_URL}/user/${user._id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -138,45 +155,94 @@ const MyProductsScreen = () => {
       return;
     }
 
-    if (!productName || !productDescription || !price || !quantity || !category || !brand || images.length === 0) {
-      setError("Please fill all required fields and add at least one image");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const formData = new FormData();
-
-      // Add text fields
-      formData.append("name", productName);
-      formData.append("category", category);
-      formData.append("price", price);
-      formData.append("description", productDescription);
-      formData.append("stock", quantity);
-      formData.append("brand", brand);
-
-      // Add images to FormData
-      for (let i = 0; i < images.length; i++) {
-        const imageFile = await uriToFormData(images[i], i);
-        formData.append("images", imageFile as any);
+    if (editingProductId == null) {
+      setShowImageUploader(true);
+      if (!productName || !productDescription || !price || !quantity || !category || !brand || images.length === 0) {
+        setError("Please fill all required fields and add at least one image");
+        return;
       }
 
-      // Send the FormData to the server
-      await axios.post(`${API_URL}`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      setLoading(true);
+      try {
+        const formData = new FormData();
 
-      await fetchProducts();
-      setModalVisible(false);
-      clearForm();
-    } catch (err) {
-      console.error("Error adding product:", err);
-      setError("Failed to add product. Please try again.");
-    } finally {
-      setLoading(false);
+        // Add text fields
+        formData.append("userId", user._id);
+        formData.append("name", productName);
+        formData.append("category", category);
+        formData.append("price", price);
+        formData.append("description", productDescription);
+        formData.append("stock", quantity);
+        formData.append("brand", brand);
+
+        // Add images to FormData as files
+        for (let i = 0; i < images.length; i++) {
+          const imageFile = await uriToFormData(images[i], i);
+          formData.append("images", imageFile as any); // Append each image file with the same key
+        }
+
+        // Log FormData for debugging
+        for (const [key, value] of formData.entries()) {
+          console.log(key, value);
+        }
+
+        // Send the FormData to the server
+        const response = await axios.post(`${API_URL}/`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${userContext?.token}`,
+          },
+        });
+
+        console.log("Server response:", response.data); // Debugging
+
+        await fetchProducts();
+        setModalVisible(false);
+        clearForm();
+      } catch (err) {
+        console.error("Error adding product:", err);
+        setError("Failed to add product. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Edit existing product logic (unchanged)
+      if (!productName || !productDescription || !price || !quantity || !category || !brand) {
+        setError("Please fill all required fields");
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const requestBody = {
+          name: productName,
+          category: category,
+          price: price,
+          description: productDescription,
+          stock: quantity,
+          brand: brand,
+        };
+
+        console.log("Request Body:", requestBody); // Debugging
+
+        const response = await axios.put(`${API_URL}/${editingProductId}`, requestBody, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${userContext?.token}`,
+          },
+        });
+
+        console.log("Server response:", response.data); // Debugging
+
+        await fetchProducts();
+        setModalVisible(false);
+        clearForm();
+      } catch (err) {
+        console.error("Error updating product:", err);
+        setError("Failed to update product. Please try again.");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -191,7 +257,7 @@ const MyProductsScreen = () => {
       // Fetch the product details to populate the form
       const response = await axios.get(`${API_URL}/${productId}`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${userContext?.token}`,
         },
       });
 
@@ -204,13 +270,12 @@ const MyProductsScreen = () => {
       setQuantity(product.stock.toString());
       setCategory(product.category);
       setBrand(product.brand);
-      setImages(product.images || []);
 
       // Open the modal for editing
       setModalVisible(true);
-
       // Store the product ID for updating
       setEditingProductId(productId);
+      setShowImageUploader(false)
     } catch (err) {
       console.error("Error fetching product details:", err);
       Alert.alert("Error", "Failed to fetch product details. Please try again.");
@@ -225,38 +290,33 @@ const MyProductsScreen = () => {
       return;
     }
 
-    // Show confirmation dialog
-    Alert.alert(
-      "Delete Product",
-      "Are you sure you want to delete this product?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Delete",
-          onPress: async () => {
-            setLoading(true);
-            try {
-              await axios.delete(`${API_URL}/${productId}`, {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              });
+    console.log("Deleting product:", productId);
 
-              // Refresh the product list
-              await fetchProducts();
-            } catch (err) {
-              console.error("Error deleting product:", err);
-              Alert.alert("Error", "Failed to delete product. Please try again.");
-            } finally {
-              setLoading(false);
-            }
-          },
+    // Show confirmation dialog
+    try {
+      console.log("Sending DELETE request to:", `${API_URL}/${productId}`);
+
+      const response = await axios.delete(`${API_URL}/${productId}`, {
+        headers: {
+          Authorization: `Bearer ${userContext?.token}`,
         },
-      ]
-    );
+      });
+
+      console.log("Delete response:", response.data);
+
+      if (response.status === 200 || response.status === 204) {
+        // Refresh the product list
+        await fetchProducts();
+        Alert.alert("Success", "Product deleted successfully.");
+      } else {
+        throw new Error("Unexpected response status");
+      }
+    } catch (err) {
+      console.error("Error deleting product:", err);
+      Alert.alert("Error", "Failed to delete product. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const clearForm = () => {
@@ -327,7 +387,14 @@ const MyProductsScreen = () => {
             <Ionicons name="briefcase-outline" size={60} color="#9370DB" />
             <Text style={styles.emptyTitle}>No products added</Text>
             <Text style={styles.emptyText}>You haven't added any products yet</Text>
-            <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => {
+                setModalVisible(true);
+                setShowImageUploader(true);
+                clearForm();
+              }}
+            >
               <Text style={styles.addButtonText}>Add New Product</Text>
             </TouchableOpacity>
           </View>
@@ -347,14 +414,14 @@ const MyProductsScreen = () => {
                 <View style={styles.productActions}>
                   <TouchableOpacity
                     style={styles.editButton}
-                    onPress={() => handleEditProduct(product._id)}
+                    onPress={() => handleEditProduct(product._id)} // Assuming product._id is the unique identifier
                   >
                     <Ionicons name="create-outline" size={16} color="#9370DB" />
                     <Text style={styles.editButtonText}>Edit</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.deleteButton}
-                    onPress={() => handleDeleteProduct(product._id)}
+                    onPress={() => handleDeleteProduct(product._id)} // Assuming product._id is the unique identifier
                   >
                     <Ionicons name="trash-outline" size={16} color="#FF3B30" />
                     <Text style={styles.deleteButtonText}>Delete</Text>
@@ -362,6 +429,17 @@ const MyProductsScreen = () => {
                 </View>
               </View>
             ))}
+
+            <TouchableOpacity
+              style={styles.floatingButton}
+              onPress={() => {
+                setModalVisible(true); // Open the modal
+                setShowImageUploader(true); // Show the image uploader
+                clearForm();
+              }}
+            >
+              <Ionicons name="add" size={24} color="#fff" />
+            </TouchableOpacity>
           </View>
         )}
 
@@ -444,21 +522,25 @@ const MyProductsScreen = () => {
                   placeholderTextColor="#666"
                 />
 
-                <Text style={styles.inputLabel}>Images * (Max 5)</Text>
-                <TouchableOpacity style={styles.imagePickerButton} onPress={pickImages}>
-                  <Ionicons name="image-outline" size={20} color="#fff" style={styles.buttonIcon} />
-                  <Text style={styles.imagePickerButtonText}>Upload Images</Text>
-                </TouchableOpacity>
-                <View style={styles.imageList}>
-                  {images.map((uri, index) => (
-                    <View key={index} style={styles.imageContainer}>
-                      <Image source={{ uri }} style={styles.selectedImage} />
-                      <TouchableOpacity style={styles.removeImageButton} onPress={() => removeImage(index)}>
-                        <Ionicons name="close" size={16} color="#fff" />
-                      </TouchableOpacity>
+                {showImageUploader && (
+                  <>
+                    <Text style={styles.inputLabel}>Images * (Max 5)</Text>
+                    <TouchableOpacity style={styles.imagePickerButton} onPress={pickImages}>
+                      <Ionicons name="image-outline" size={20} color="#fff" style={styles.buttonIcon} />
+                      <Text style={styles.imagePickerButtonText}>Upload Images</Text>
+                    </TouchableOpacity>
+                    <View style={styles.imageList}>
+                      {images.map((uri, index) => (
+                        <View key={index} style={styles.imageContainer}>
+                          <Image source={{ uri }} style={styles.selectedImage} />
+                          <TouchableOpacity style={styles.removeImageButton} onPress={() => removeImage(index)}>
+                            <Ionicons name="close" size={16} color="#fff" />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
                     </View>
-                  ))}
-                </View>
+                  </>
+                )}
 
                 <TouchableOpacity style={styles.saveButton} onPress={handleAddProduct} disabled={loading}>
                   {loading ? (

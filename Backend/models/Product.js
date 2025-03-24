@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+    },
     name: {
         type: String,
         required: true,
@@ -10,7 +15,7 @@ const productSchema = new mongoose.Schema({
     }],
     category: [{
         type: String,
-        enum: ['beauty', 'fashion', 'style', 'clothing', 'electronics', 'home', 'sports', 'other'],
+        enum: ['Beauty', 'Fashion', 'Toys', 'Style', 'Clothing', 'Electronics', 'Eome', 'Sports', 'Other'],
         required: true,
     }],
     price: {
