@@ -13,11 +13,11 @@ import {
   Image,
   Alert,
 } from "react-native"
+import { UserContext } from "./context/userContext"
 import { Ionicons } from "@expo/vector-icons"
 import axios from "axios"
 import { useRouter } from "expo-router"
 import * as ImagePicker from "expo-image-picker"
-import { UserContext } from "../context/userContext"
 
 const API_URL = "http://localhost:5000/products"
 
@@ -167,9 +167,7 @@ const MyProductsScreen = () => {
         const formData = new FormData();
 
         // Add text fields
-
         formData.append("userId", user._id);
-
         formData.append("name", productName);
         formData.append("category", category);
         formData.append("price", price);
@@ -177,10 +175,10 @@ const MyProductsScreen = () => {
         formData.append("stock", quantity);
         formData.append("brand", brand);
 
-        // Add images to FormData
+        // Add images to FormData as files
         for (let i = 0; i < images.length; i++) {
           const imageFile = await uriToFormData(images[i], i);
-          formData.append("images", imageFile as any);
+          formData.append("images", imageFile as any); // Append each image file with the same key
         }
 
         // Log FormData for debugging
@@ -196,6 +194,8 @@ const MyProductsScreen = () => {
           },
         });
 
+        console.log("Server response:", response.data); // Debugging
+
         await fetchProducts();
         setModalVisible(false);
         clearForm();
@@ -205,9 +205,8 @@ const MyProductsScreen = () => {
       } finally {
         setLoading(false);
       }
-    }
-    else {
-      // Edit existing product logic
+    } else {
+      // Edit existing product logic (unchanged)
       if (!productName || !productDescription || !price || !quantity || !category || !brand) {
         setError("Please fill all required fields");
         return;
@@ -215,7 +214,6 @@ const MyProductsScreen = () => {
 
       setLoading(true);
       try {
-        // Prepare the raw JSON body
         const requestBody = {
           name: productName,
           category: category,
@@ -225,16 +223,16 @@ const MyProductsScreen = () => {
           brand: brand,
         };
 
-        // Log the request body for debugging
-        console.log("Request Body:", requestBody);
+        console.log("Request Body:", requestBody); // Debugging
 
-        // Send the PUT request to the server
         const response = await axios.put(`${API_URL}/${editingProductId}`, requestBody, {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${userContext?.token}`,
           },
         });
+
+        console.log("Server response:", response.data); // Debugging
 
         await fetchProducts();
         setModalVisible(false);

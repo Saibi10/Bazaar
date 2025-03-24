@@ -67,40 +67,40 @@ export default function ProfileScreen() {
 
                 {/* Menu Items */}
                 <View style={styles.menuSection}>
-                    <MenuItem 
-                        icon="cart-outline" 
-                        title="My Orders" 
-                        subtitle="Track, return, or buy things again" 
-                        route="/display-orders"
+                    <MenuItem
+                        icon="cart-outline"
+                        title="My Orders"
+                        subtitle="Track, return, or buy things again"
+                        route="/orders"
                     />
-                    <MenuItem 
-                        icon="heart-outline" 
-                        title="My Wishlist" 
-                        subtitle="Your saved items" 
+                    <MenuItem
+                        icon="heart-outline"
+                        title="My Wishlist"
+                        subtitle="Your saved items"
                         route="/my-wishlist"
                     />
-                    <MenuItem 
-                        icon="location-outline" 
-                        title="My Addresses" 
-                        subtitle="Your saved addresses" 
+                    <MenuItem
+                        icon="location-outline"
+                        title="My Addresses"
+                        subtitle="Your saved addresses"
                         route="/addresses"
                     />
-                    <MenuItem 
-                        icon="briefcase-outline" 
-                        title="My Products" 
-                        subtitle="Sell your products" 
+                    <MenuItem
+                        icon="briefcase-outline"
+                        title="My Products"
+                        subtitle="Sell your products"
                         route="/my-products"
                     />
-                    <MenuItem 
-                        icon="headset-outline" 
-                        title="Help Center" 
-                        subtitle="Help and support" 
+                    <MenuItem
+                        icon="headset-outline"
+                        title="Help Center"
+                        subtitle="Help and support"
                         route="/help"
                     />
-                    <MenuItem 
-                        icon="settings-outline" 
-                        title="Settings" 
-                        subtitle="Privacy and logout" 
+                    <MenuItem
+                        icon="settings-outline"
+                        title="Settings"
+                        subtitle="Privacy and logout"
                         route="/settings"
                     />
                 </View>

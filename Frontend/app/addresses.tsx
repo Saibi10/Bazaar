@@ -12,11 +12,11 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native"
+import { UserContext } from "./context/userContext"
 import { StatusBar } from "expo-status-bar"
 import { Ionicons } from "@expo/vector-icons"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useRouter } from "expo-router"
-import { UserContext } from "../context/userContext"
 import axios from "axios"
 
 // Define the Address type based on the MongoDB schema
@@ -85,7 +85,7 @@ export default function AddressScreen() {
 
   // Render a loading state or error message if context is not available
   if (!userContext) {
-      return (
+    return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <StatusBar style="light" />
         <View style={styles.header}>
@@ -116,7 +116,7 @@ export default function AddressScreen() {
       const response = await axios.get(`http://localhost:5000/addresses/${user._id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
-        },  
+        },
       })
       setAddresses(response.data)
     } catch (error) {
@@ -146,72 +146,73 @@ export default function AddressScreen() {
 
   // Submit new address
   const handleSubmit = async () => {
-  if (!token || !user) {
-    Alert.alert("Error", "You must be logged in to add an address");
-    return;
-  }
+    if (!token || !user) {
+      Alert.alert("Error", "You must be logged in to add an address");
+      return;
+    }
 
-  // Validate required fields
-  const requiredFields: (keyof AddressFormData)[] = [
-    "name",
-    "phoneNumber",
-    "addressLine1",
-    "city",
-    "state",
-    "postalCode",
-    "country",
-  ];
+    // Validate required fields
+    const requiredFields: (keyof AddressFormData)[] = [
+      "name",
+      "phoneNumber",
+      "addressLine1",
+      "city",
+      "state",
+      "postalCode",
+      "country",
+    ];
 
-  const missingFields = requiredFields.filter((field) => !formData[field]);
+    const missingFields = requiredFields.filter((field) => !formData[field]);
 
-  if (missingFields.length > 0) {
-    Alert.alert("Missing Information", "Please fill in all required fields");
-    return;
-  }
+    if (missingFields.length > 0) {
+      Alert.alert("Missing Information", "Please fill in all required fields");
+      return;
+    }
 
-  formData.userId = user._id;
+    formData.userId = user._id;
 
-  try {
-    setSubmitting(true);
+    try {
+      setSubmitting(true);
 
-    // Stringify the form data
-    const jsonData = JSON.stringify(formData);
+      // Stringify the form data
+      const jsonData = JSON.stringify(formData);
 
-    console.log(jsonData)
+      console.log(jsonData)
 
-    // Send the request with the raw JSON data
-    await axios.post("http://localhost:5000/addresses", jsonData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json", // Set the content type to JSON
-      },
-    });
+      // Send the request with the raw JSON data
+      await axios.post("http://localhost:5000/addresses", jsonData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json", // Set the content type to JSON
+        },
+      });
 
-    // Reset form and close modal
-    setFormData({
-      userId: "",
-      type: "home",
-      name: "",
-      phoneNumber: "",
-      addressLine1: "",
-      city: "",
-      state: "",
-      postalCode: "",
-      country: "",
-      isDefault: false,
-    });
+      // Reset form and close modal
+      setFormData({
+        userId: "",
+        type: "home",
+        name: "",
+        phoneNumber: "",
+        addressLine1: "",
+        city: "",
+        state: "",
+        postalCode: "",
+        country: "",
+        isDefault: false,
+      });
 
-    setModalVisible(false);
-    fetchAddresses(); // Refresh the address list
-  } catch (error) {
-    console.error("Error saving address:", error);
-    Alert.alert("Error", "Failed to save address");
-  } finally {
-    setSubmitting(false);
-  }
-};
+      setModalVisible(false);
+      fetchAddresses(); // Refresh the address list
+    } catch (error) {
+      console.error("Error saving address:", error);
+      Alert.alert("Error", "Failed to save address");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
+
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar style="light" />
 
