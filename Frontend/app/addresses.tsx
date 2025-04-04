@@ -55,10 +55,13 @@ export default function AddressScreen() {
   const userContext = useContext(UserContext)
 
   const [addresses, setAddresses] = useState<Address[]>([])
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true)
   const [modalVisible, setModalVisible] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [addressType, setAddressType] = useState("home")
+
+  const URL = process.env.EXPO_PUBLIC_APIBASE_URL;
 
   // Form state
   const [formData, setFormData] = useState<AddressFormData>({
@@ -113,7 +116,7 @@ export default function AddressScreen() {
     try {
       setLoading(true)
       console.log(user._id);
-      const response = await axios.get(`http://localhost:5000/addresses/${user._id}`, {
+      const response = await axios.get(`${URL}/addresses/${user._id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -147,7 +150,7 @@ export default function AddressScreen() {
   // Submit new address
   const handleSubmit = async () => {
     if (!token || !user) {
-      Alert.alert("Error", "You must be logged in to add an address");
+      Alert.alert("Error", "You must be logged in to manage addresses");
       return;
     }
 
@@ -174,18 +177,25 @@ export default function AddressScreen() {
     try {
       setSubmitting(true);
 
-      // Stringify the form data
       const jsonData = JSON.stringify(formData);
 
-      console.log(jsonData)
-
-      // Send the request with the raw JSON data
-      await axios.post("http://localhost:5000/addresses", jsonData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json", // Set the content type to JSON
-        },
-      });
+      if (editingAddressId) {
+        // Update existing address
+        await axios.put(`${URL}/addresses/${editingAddressId}`, jsonData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+      } else {
+        // Create new address
+        await axios.post(`${URL}/addresses`, jsonData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+      }
 
       // Reset form and close modal
       setFormData({
@@ -200,7 +210,7 @@ export default function AddressScreen() {
         country: "",
         isDefault: false,
       });
-
+      setEditingAddressId(null);
       setModalVisible(false);
       fetchAddresses(); // Refresh the address list
     } catch (error) {
@@ -209,6 +219,100 @@ export default function AddressScreen() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEditAddress = async (addressId: string) => {
+    if (!user || !token) {
+      Alert.alert("Login Required", "You need to login to edit addresses");
+      router.push("/login");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Fetch the address details to populate the form
+      const response = await axios.get(`${URL}/addresses/${addressId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const address = response.data;
+
+      // Populate the form fields with the address data
+      setFormData({
+        userId: address.userId,
+        type: address.type,
+        name: address.name,
+        phoneNumber: address.phoneNumber,
+        addressLine1: address.addressLine1,
+        city: address.city,
+        state: address.state,
+        postalCode: address.postalCode,
+        country: address.country,
+        isDefault: address.isDefault,
+      });
+
+      // Set the address type
+      setAddressType(address.type);
+
+      // Open the modal for editing
+      setModalVisible(true);
+      // Store the address ID for updating
+      setEditingAddressId(addressId);
+    } catch (err) {
+      console.error("Error fetching address details:", err);
+      Alert.alert("Error", "Failed to fetch address details. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteAddress = async (addressId: string) => {
+    if (!user || !token) {
+      Alert.alert("Login Required", "You need to login to delete addresses");
+      router.push("/login");
+      return;
+    }
+
+    // Show confirmation dialog
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to delete this address?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const response = await axios.delete(`${URL}/addresses/${user._id}/${addressId}`, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+
+              if (response.status === 200 || response.status === 204) {
+                // Refresh the address list
+                await fetchAddresses();
+                Alert.alert("Success", "Address deleted successfully");
+              } else {
+                throw new Error("Unexpected response status");
+              }
+            } catch (err) {
+              console.error("Error deleting address:", err);
+              Alert.alert("Error", "Failed to delete address. Please try again.");
+            } finally {
+              setLoading(false);
+            }
+          },
+          style: "destructive",
+        },
+      ]
+    );
   };
 
   return (
@@ -255,7 +359,12 @@ export default function AddressScreen() {
           ) : (
             <ScrollView contentContainerStyle={styles.addressListContainer}>
               {addresses.map((address) => (
-                <AddressCard key={address._id} address={address} />
+                <AddressCard
+                  key={address._id}
+                  address={address}
+                  onEdit={handleEditAddress}
+                  onDelete={handleDeleteAddress}
+                />
               ))}
 
               <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
@@ -416,7 +525,16 @@ export default function AddressScreen() {
 }
 
 // Address Card Component
-function AddressCard({ address }: { address: Address }) {
+// Address Card Component
+function AddressCard({
+  address,
+  onEdit,
+  onDelete
+}: {
+  address: Address;
+  onEdit: (addressId: string) => void;
+  onDelete: (addressId: string) => void;
+}) {
   return (
     <View style={styles.addressCard}>
       <View style={styles.addressHeader}>
@@ -437,12 +555,18 @@ function AddressCard({ address }: { address: Address }) {
       <Text style={styles.addressPhone}>{address.phoneNumber}</Text>
 
       <View style={styles.addressActions}>
-        <TouchableOpacity style={styles.editButton}>
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => onEdit(address._id)}
+        >
           <Ionicons name="create-outline" size={16} color="#9370DB" />
           <Text style={styles.editButtonText}>Edit</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.deleteButton}>
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => onDelete(address._id)}
+        >
           <Ionicons name="trash-outline" size={16} color="#FF3B30" />
           <Text style={styles.deleteButtonText}>Delete</Text>
         </TouchableOpacity>

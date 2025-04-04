@@ -25,6 +25,11 @@ export default function ProfileScreen() {
 
     const { user, token, logout } = context;
 
+    if (!context) {
+        console.error("UserContext is undefined. Make sure the provider is properly set up.");
+        return null; // Or show a loading spinner
+    }
+
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <StatusBar style="light" />

@@ -19,7 +19,9 @@ import axios from "axios"
 import { useRouter } from "expo-router"
 import * as ImagePicker from "expo-image-picker"
 
-const API_URL = "http://localhost:5000/products"
+const URL = process.env.EXPO_PUBLIC_APIBASE_URL;
+
+const API_URL = `${URL}/products`;
 
 const MyProductsScreen = () => {
   const router = useRouter()
