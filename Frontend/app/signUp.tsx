@@ -29,8 +29,10 @@ export default function SignupScreen() {
     setLoading(true);
     setError("");
 
+    const URL = process.env.EXPO_PUBLIC_APIBASE_URL;
+
     try {
-      const response = await fetch("http://localhost:5000/users/create", {
+      const response = await fetch(`${URL}/users/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
