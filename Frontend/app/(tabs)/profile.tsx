@@ -1,10 +1,12 @@
-import React, { useContext } from 'react';
+import React, { useContext, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
     View,
     Text,
     StyleSheet,
     TouchableOpacity,
     ScrollView,
+    TouchableWithoutFeedback,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,12 +25,24 @@ export default function ProfileScreen() {
         return null; // Or show a loading spinner
     }
 
-    const { user, token, logout } = context;
+    const { user, token, logout, refreshUser } = context;
 
     if (!context) {
         console.error("UserContext is undefined. Make sure the provider is properly set up.");
         return null; // Or show a loading spinner
     }
+
+    useFocusEffect(
+        useCallback(() => {
+            console.log("Profile screen focused - refreshing data");
+            if (refreshUser) {
+                refreshUser(); // Call your refresh function
+            }
+
+            // You can also force a re-render if needed
+            // Or fetch fresh data from your API
+        }, [refreshUser]) // Add dependencies here if needed
+    );
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
