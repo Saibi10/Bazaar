@@ -5,16 +5,37 @@ const fs = require('fs');
 // Create a new product with image upload
 const createProduct = async (req, res) => {
     try {
-        const { name, category, price, description, stock, brand, userId } = req.body;
+        const { name, category, price, description, stock, brand, userId, images } = req.body;
+
+        // Validate that images array exists and has at least one image
+        if (!images || !Array.isArray(images) || images.length === 0) {
+            return res.status(400).json({ message: 'At least one image is required' });
+        }
 
         // Upload images to Cloudinary
         const imageUrls = [];
-        for (const file of req.files) {
-            const result = await cloudinary.uploader.upload(file.path);
-            imageUrls.push(result.secure_url);
+        for (const imagePath of images) {
+            try {
+                // Check if file exists
+                if (!fs.existsSync(imagePath)) {
+                    console.warn(`File not found: ${imagePath}`);
+                    continue;
+                }
 
-            // Delete the temporary file after uploading to Cloudinary
-            fs.unlinkSync(file.path);
+                const result = await cloudinary.uploader.upload(imagePath);
+                imageUrls.push(result.secure_url);
+
+                // Optionally delete the local file after upload
+                fs.unlinkSync(imagePath);
+            } catch (uploadError) {
+                console.error(`Error uploading image ${imagePath}:`, uploadError);
+                // Continue with other images even if one fails
+            }
+        }
+
+        // Check if any images were successfully uploaded
+        if (imageUrls.length === 0) {
+            return res.status(400).json({ message: 'Failed to upload any images' });
         }
 
         // Create the product
@@ -32,6 +53,7 @@ const createProduct = async (req, res) => {
 
         res.status(201).json({ message: 'Product created successfully', product });
     } catch (error) {
+        console.error('Error creating product:', error);
         res.status(400).json({ message: 'Error creating product', error: error.message });
     }
 };

@@ -23,6 +23,14 @@ const URL = process.env.EXPO_PUBLIC_APIBASE_URL;
 
 const API_URL = `${URL}/products`;
 
+interface ImageObject {
+  uri: string;
+  // Add any other properties your image objects might have
+  type?: string;
+  name?: string;
+  fileName?: string;
+}
+
 const MyProductsScreen = () => {
   const router = useRouter()
   const userContext = useContext(UserContext)
@@ -48,7 +56,7 @@ const MyProductsScreen = () => {
   const [quantity, setQuantity] = useState("")
   const [category, setCategory] = useState("")
   const [brand, setBrand] = useState("")
-  const [images, setImages] = useState<string[]>([]) // Store multiple image URIs
+  const [images, setImages] = useState<Array<string | ImageObject>>([]);
 
   // Check if user is authenticated
   const isAuthenticated = userContext && userContext.user && userContext.token
@@ -166,38 +174,33 @@ const MyProductsScreen = () => {
 
       setLoading(true);
       try {
-        const formData = new FormData();
+        // Prepare the request payload
+        const requestBody = {
+          userId: user._id,
+          name: productName,
+          category: category,
+          price: price,
+          description: productDescription,
+          stock: quantity,
+          brand: brand,
+          images: images.map(image => {
+            // If image is already a string (path), use it directly
+            if (typeof image === 'string') return image;
+            // Otherwise, use the URI from the image object
+            return image.uri;
+          }),
+        };
 
-        // Add text fields
-        formData.append("userId", user._id);
-        formData.append("name", productName);
-        formData.append("category", category);
-        formData.append("price", price);
-        formData.append("description", productDescription);
-        formData.append("stock", quantity);
-        formData.append("brand", brand);
+        console.log("Request Body:", requestBody);
 
-        // Add images to FormData as files
-        for (let i = 0; i < images.length; i++) {
-          const imageFile = await uriToFormData(images[i], i);
-          formData.append("images", imageFile as any); // Append each image file with the same key
-        }
-
-        // Log FormData for debugging
-        for (const [key, value] of formData.entries()) {
-          console.log(key, value);
-        }
-
-        // Send the FormData to the server
-        const response = await axios.post(`${API_URL}/`, formData, {
+        const response = await axios.post(`${API_URL}/`, requestBody, {
           headers: {
-            "Content-Type": "multipart/form-data",
+            "Content-Type": "application/json",
             Authorization: `Bearer ${userContext?.token}`,
           },
         });
 
-        console.log("Server response:", response.data); // Debugging
-
+        console.log("Server response:", response.data);
         await fetchProducts();
         setModalVisible(false);
         clearForm();
@@ -225,7 +228,7 @@ const MyProductsScreen = () => {
           brand: brand,
         };
 
-        console.log("Request Body:", requestBody); // Debugging
+        console.log("Request Body:", requestBody);
 
         const response = await axios.put(`${API_URL}/${editingProductId}`, requestBody, {
           headers: {
@@ -234,7 +237,7 @@ const MyProductsScreen = () => {
           },
         });
 
-        console.log("Server response:", response.data); // Debugging
+        console.log("Server response:", response.data);
 
         await fetchProducts();
         setModalVisible(false);
@@ -511,23 +514,29 @@ const MyProductsScreen = () => {
                 />
 
                 {showImageUploader && (
-                  <>
+                  <View>
                     <Text style={styles.inputLabel}>Images * (Max 5)</Text>
                     <TouchableOpacity style={styles.imagePickerButton} onPress={pickImages}>
                       <Ionicons name="image-outline" size={20} color="#fff" style={styles.buttonIcon} />
                       <Text style={styles.imagePickerButtonText}>Upload Images</Text>
                     </TouchableOpacity>
                     <View style={styles.imageList}>
-                      {images.map((uri, index) => (
-                        <View key={index} style={styles.imageContainer}>
-                          <Image source={{ uri }} style={styles.selectedImage} />
-                          <TouchableOpacity style={styles.removeImageButton} onPress={() => removeImage(index)}>
-                            <Ionicons name="close" size={16} color="#fff" />
-                          </TouchableOpacity>
-                        </View>
-                      ))}
+                      {images.map((image, index) => {
+                        const uri = typeof image === 'string' ? image : image.uri;
+                        return (
+                          <View key={index} style={styles.imageContainer}>
+                            <Image source={{ uri }} style={styles.selectedImage} />
+                            <TouchableOpacity
+                              style={styles.removeImageButton}
+                              onPress={() => removeImage(index)}
+                            >
+                              <Ionicons name="close" size={16} color="#fff" />
+                            </TouchableOpacity>
+                          </View>
+                        );
+                      })}
                     </View>
-                  </>
+                  </View>
                 )}
 
                 <TouchableOpacity style={styles.saveButton} onPress={handleAddProduct} disabled={loading}>
