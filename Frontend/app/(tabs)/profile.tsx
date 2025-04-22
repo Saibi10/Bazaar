@@ -19,12 +19,6 @@ export default function ProfileScreen() {
     const router = useRouter();
     const context = useContext(UserContext);
 
-    // Debugging: Check if context is undefined
-    if (!context) {
-        console.error("UserContext is undefined. Make sure the provider is properly set up.");
-        return null; // Or show a loading spinner
-    }
-
     const { user, token, logout, refreshUser } = context;
 
     if (!context) {
