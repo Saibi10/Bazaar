@@ -1,29 +1,202 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     TouchableOpacity,
     ScrollView,
+    ActivityIndicator
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { UserContext } from '../context/userContext';
+import axios from 'axios';
+
+interface Order {
+    _id: string;
+    items: Array<{
+        product: {
+            _id: string;
+            name: string;
+            price: number;
+        };
+        quantity: number;
+    }>;
+    totalAmount: number;
+    status: 'COMPLETED' | 'RETURNED' | 'IN PROGRESS';
+    orderDate: string;
+    deliveryDate?: string;
+}
 
 const orderStatuses = [
-    { id: '1', title: 'In-progress', selected: true },
-    { id: '2', title: 'Delivered', selected: false },
-    { id: '3', title: 'Returned', selected: false },
+    { id: '1', title: 'IN PROGRESS', selected: true },
+    { id: '2', title: 'COMPLETED', selected: false },
+    { id: '3', title: 'RETURNED', selected: false },
 ];
+
+const URL = process.env.EXPO_PUBLIC_APIBASE_URL;
+const API_URL = `${URL}/orders`;
+
+interface OrderCardProps {
+    orderNumber: string;
+    date: string;
+    items: number;
+    total: string;
+    status: string;
+    isDelivered: boolean;
+}
+
+const OrderCard = ({ orderNumber, date, items, total, status, isDelivered }: OrderCardProps) => (
+    <View style={orderStyles.container}>
+        <View style={orderStyles.header}>
+            <Text style={orderStyles.orderNumber}>Order #{orderNumber}</Text>
+            <Text style={orderStyles.date}>{date}</Text>
+        </View>
+        <View style={orderStyles.details}>
+            <Text style={orderStyles.items}>{items} items</Text>
+            <Text style={orderStyles.total}>{total}</Text>
+        </View>
+        <View style={orderStyles.footer}>
+            <View style={[orderStyles.statusBadge, isDelivered && orderStyles.deliveredBadge]}>
+                <Text style={orderStyles.statusText}>{status}</Text>
+            </View>
+        </View>
+    </View>
+);
+
+const orderStyles = StyleSheet.create({
+    container: {
+        backgroundColor: '#1E1E1E',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 12,
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 12,
+    },
+    orderNumber: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    date: {
+        color: '#999999',
+        fontSize: 14,
+    },
+    details: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 12,
+    },
+    items: {
+        color: '#CCCCCC',
+        fontSize: 14,
+    },
+    total: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    footer: {
+        flexDirection: 'row',
+        justifyContent: 'flex-start',
+    },
+    statusBadge: {
+        backgroundColor: '#2A2A2A',
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+    },
+    deliveredBadge: {
+        backgroundColor: '#9370DB',
+    },
+    statusText: {
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: '500',
+    },
+});
 
 export default function OrdersScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<string>('In-progress'); // Explicit type for activeTab
+    const [activeTab, setActiveTab] = useState<string>('IN PROGRESS');
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const context = useContext(UserContext);
 
-    const handleTabPress = (tabTitle: string) => { // Explicit type for tabTitle
+    if (!context) {
+        console.error("UserContext is undefined. Make sure the provider is properly set up.");
+        return null;
+    }
+
+    const { user, token } = context;
+
+    useEffect(() => {
+        const fetchOrders = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+
+                if (!user?._id || !token) {
+                    throw new Error('User not authenticated');
+                }
+
+                const response = await axios.get(`${API_URL}/${user._id}`, {
+                    params: {
+                        status: activeTab
+                    },
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                setOrders(response.data);
+            } catch (err: any) {
+                console.error('Failed to fetch orders:', err);
+                setError(
+                    err.response?.data?.message ||
+                    err.message ||
+                    'Failed to fetch orders'
+                );
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchOrders();
+    }, [activeTab, user?._id, token]);
+
+    const handleTabPress = (tabTitle: string) => {
         setActiveTab(tabTitle);
+    };
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    };
+
+    const getStatusDisplayText = (status: string) => {
+        switch (status) {
+            case 'COMPLETED':
+                return 'Delivered';
+            case 'IN PROGRESS':
+                return 'Processing';
+            case 'RETURNED':
+                return 'Returned';
+            default:
+                return status;
+        }
     };
 
     return (
@@ -65,7 +238,7 @@ export default function OrdersScreen() {
                                 activeTab === status.title && styles.activeTabButtonText,
                             ]}
                         >
-                            {status.title}
+                            {getStatusDisplayText(status.title)}
                         </Text>
                     </TouchableOpacity>
                 ))}
@@ -73,103 +246,52 @@ export default function OrdersScreen() {
 
             {/* Orders List */}
             <ScrollView contentContainerStyle={styles.contentContainer}>
-                {activeTab === 'In-progress' ? (
-                    // In-progress orders (sample data)
-                    <View style={styles.ordersContainer}>
-                        <OrderCard
-                            orderNumber="ORD-12345"
-                            date="March 18, 2025"
-                            items={3}
-                            total="$120.00"
-                            status="Processing"
-                        />
-                        <OrderCard
-                            orderNumber="ORD-12346"
-                            date="March 17, 2025"
-                            items={1}
-                            total="$45.99"
-                            status="Shipped"
-                        />
+                {loading ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color="#9370DB" />
                     </View>
-                ) : activeTab === 'Delivered' ? (
-                    // Delivered orders (sample data)
-                    <View style={styles.ordersContainer}>
-                        <OrderCard
-                            orderNumber="ORD-12340"
-                            date="March 10, 2025"
-                            items={2}
-                            total="$78.50"
-                            status="Delivered"
-                            isDelivered
-                        />
-                        <OrderCard
-                            orderNumber="ORD-12338"
-                            date="March 5, 2025"
-                            items={4}
-                            total="$156.75"
-                            status="Delivered"
-                            isDelivered
-                        />
+                ) : error ? (
+                    <View style={styles.emptyStateContainer}>
+                        <Text style={styles.errorText}>{error}</Text>
+                        <TouchableOpacity
+                            style={styles.retryButton}
+                            onPress={() => setActiveTab(activeTab)} // This will trigger the useEffect
+                        >
+                            <Text style={styles.retryButtonText}>Retry</Text>
+                        </TouchableOpacity>
                     </View>
-                ) : (
-                    // Returned orders
+                ) : orders.length === 0 ? (
                     <View style={styles.emptyStateContainer}>
                         <View style={styles.emptyStateImageContainer}>
-                            <Ionicons name="return-down-back-outline" size={80} color="#9370DB" />
+                            <Ionicons
+                                name={activeTab === 'RETURNED' ? "return-down-back-outline" : "receipt-outline"}
+                                size={80}
+                                color="#9370DB"
+                            />
                         </View>
                         <Text style={styles.emptyStateTitle}>
-                            No returned orders
+                            No {getStatusDisplayText(activeTab).toLowerCase()} orders
                         </Text>
                         <Text style={styles.emptyStateSubtitle}>
-                            You don't have any returned orders yet
+                            You don't have any {getStatusDisplayText(activeTab).toLowerCase()} orders yet
                         </Text>
+                    </View>
+                ) : (
+                    <View style={styles.ordersContainer}>
+                        {orders.map((order) => (
+                            <OrderCard
+                                key={order._id}
+                                orderNumber={order._id.substring(0, 8).toUpperCase()}
+                                date={formatDate(order.orderDate)}
+                                items={order.items.reduce((acc, item) => acc + item.quantity, 0)}
+                                total={`$${order.totalAmount.toFixed(2)}`}
+                                status={getStatusDisplayText(order.status)}
+                                isDelivered={order.status === 'COMPLETED'}
+                            />
+                        ))}
                     </View>
                 )}
             </ScrollView>
-        </View>
-    );
-}
-
-// Define the props for the OrderCard component
-interface OrderCardProps {
-    orderNumber: string;
-    date: string;
-    items: number;
-    total: string;
-    status: string;
-    isDelivered?: boolean;
-}
-
-function OrderCard({ orderNumber, date, items, total, status, isDelivered = false }: OrderCardProps) {
-    return (
-        <View style={styles.orderCard}>
-            <View style={styles.orderHeader}>
-                <Text style={styles.orderNumber}>{orderNumber}</Text>
-                <View style={[
-                    styles.statusBadge,
-                    { backgroundColor: isDelivered ? '#55EFC4' : '#9370DB' }
-                ]}>
-                    <Text style={styles.statusText}>{status}</Text>
-                </View>
-            </View>
-
-            <View style={styles.orderDetails}>
-                <Text style={styles.orderDate}>Order Date: {date}</Text>
-                <Text style={styles.orderItems}>Items: {items}</Text>
-                <Text style={styles.orderTotal}>Total: {total}</Text>
-            </View>
-
-            <View style={styles.orderActions}>
-                <TouchableOpacity style={styles.orderActionButton}>
-                    <Text style={styles.orderActionButtonText}>View Details</Text>
-                </TouchableOpacity>
-
-                {isDelivered && (
-                    <TouchableOpacity style={[styles.orderActionButton, styles.secondaryActionButton]}>
-                        <Text style={styles.secondaryActionButtonText}>Buy Again</Text>
-                    </TouchableOpacity>
-                )}
-            </View>
         </View>
     );
 }
@@ -183,48 +305,51 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        padding: 16,
     },
     logoContainer: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     logoText: {
+        color: '#FFFFFF',
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#9370DB',
     },
     headerIcons: {
         flexDirection: 'row',
+        gap: 16,
     },
     iconButton: {
-        marginLeft: 16,
+        padding: 8,
     },
     tabsContainer: {
         flexDirection: 'row',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        padding: 16,
+        gap: 8,
+        marginTop: 8,
     },
     tabButton: {
         flex: 1,
-        paddingVertical: 12,
-        borderRadius: 25,
-        marginHorizontal: 4,
-        alignItems: 'center',
-        justifyContent: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        backgroundColor: 'transparent',
         borderWidth: 1,
-        borderColor: '#9370DB',
+        borderColor: '#2A2A2A',
     },
     activeTabButton: {
         backgroundColor: '#9370DB',
+        borderColor: '#9370DB',
     },
     tabButtonText: {
-        color: '#9370DB',
-        fontWeight: '600',
+        color: '#FFFFFF',
+        textAlign: 'center',
+        fontSize: 14,
     },
     activeTabButtonText: {
         color: '#FFFFFF',
+        fontWeight: '600',
     },
     contentContainer: {
         flexGrow: 1,
@@ -234,93 +359,47 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 32,
+        minHeight: 500,
     },
     emptyStateImageContainer: {
         marginBottom: 24,
+        alignItems: 'center',
     },
     emptyStateTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
         color: '#FFFFFF',
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 8,
         textAlign: 'center',
-        marginBottom: 12,
     },
     emptyStateSubtitle: {
-        fontSize: 14,
-        color: '#8A8A8A',
+        color: '#999999',
+        fontSize: 16,
         textAlign: 'center',
-        marginBottom: 24,
+        maxWidth: '80%',
     },
     ordersContainer: {
+        gap: 16,
+    },
+    loadingContainer: {
         flex: 1,
-    },
-    orderCard: {
-        backgroundColor: '#1E1E1E',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 16,
-    },
-    orderHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 12,
     },
-    orderNumber: {
+    errorText: {
+        color: '#FF6B6B',
         fontSize: 16,
-        fontWeight: 'bold',
-        color: '#FFFFFF',
-    },
-    statusBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 12,
-    },
-    statusText: {
-        color: '#FFFFFF',
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    orderDetails: {
         marginBottom: 16,
+        textAlign: 'center',
     },
-    orderDate: {
-        color: '#BBBBBB',
-        marginBottom: 4,
-    },
-    orderItems: {
-        color: '#BBBBBB',
-        marginBottom: 4,
-    },
-    orderTotal: {
-        color: '#FFFFFF',
-        fontWeight: '600',
-    },
-    orderActions: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    orderActionButton: {
+    retryButton: {
         backgroundColor: '#9370DB',
-        paddingVertical: 10,
-        paddingHorizontal: 16,
+        paddingVertical: 12,
+        paddingHorizontal: 24,
         borderRadius: 8,
-        flex: 1,
-        marginHorizontal: 4,
-        alignItems: 'center',
     },
-    orderActionButtonText: {
+    retryButtonText: {
         color: '#FFFFFF',
-        fontWeight: '600',
-    },
-    secondaryActionButton: {
-        backgroundColor: 'transparent',
-        borderWidth: 1,
-        borderColor: '#9370DB',
-    },
-    secondaryActionButtonText: {
-        color: '#9370DB',
         fontWeight: '600',
     },
 });

@@ -21,10 +21,6 @@ const orderSchema = new mongoose.Schema({
             type: Number,
             required: true,
         },
-        price: {
-            type: Number,
-            required: true,
-        },
     }],
     totalAmount: {
         type: Number,
@@ -32,7 +28,7 @@ const orderSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['COMPLETED', 'RETURNED', 'CANCELED', 'IN PROGRESS'],
+        enum: ['COMPLETED', 'RETURNED', 'IN PROGRESS'],
         default: 'IN PROGRESS',
     },
     paymentStatus: {
