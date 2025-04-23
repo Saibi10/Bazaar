@@ -139,9 +139,20 @@ const CategoryProductsScreen = () => {
         alert(`Only ${selectedProduct.stock} items are available in stock!`)
         return
       }
-      alert(
-        `You bought ${quantity} ${selectedProduct.name}(s) for $${selectedProduct.price} each!\nSize: ${selectedSize}, Color: ${selectedColor}`,
-      )
+
+      // Navigate to payment details page with product information
+      router.push({
+        pathname: "/payment_details",
+        params: {
+          productName: selectedProduct.name,
+          productPrice: selectedProduct.price.toString(),
+          quantity: quantity,
+          size: selectedSize,
+          color: selectedColor,
+          productId: selectedProduct._id,
+        },
+      })
+
       setIsModalVisible(false)
       setSelectedProduct(null)
       setQuantity("1")
