@@ -66,6 +66,57 @@ const getProductByUserId = async (req, res) => {
     }
 };
 
+const addImagesInProduct = async (req, res) => {
+    try {
+        const { productId } = req.params;
+
+        console.log("Starting")
+
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: 'No files uploaded' });
+        }
+
+        if (req.files.length > 5) {
+            return res.status(400).json({ message: 'Maximum 5 images can be uploaded at once' });
+        }
+
+        // Find the product first
+        const product = await Product.findById(productId);
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        // Upload all images to Cloudinary
+        const uploadPromises = req.files.map(file =>
+            cloudinary.uploader.upload(file.path, {
+                folder: 'product_images'
+            })
+        );
+
+        const results = await Promise.all(uploadPromises);
+
+        // Add all new image URLs to the product's pics_url array
+        results.forEach(result => {
+            product.pics_url.push(result.secure_url);
+        });
+
+        await product.save();
+
+        // Delete all temporary files
+        req.files.forEach(file => {
+            fs.unlinkSync(file.path);
+        });
+
+        res.status(200).json({
+            message: 'Images added successfully',
+            product: product
+        });
+    } catch (error) {
+        console.error('Error adding images to product:', error);
+        res.status(500).json({ message: 'Error adding images to product', error: error.message });
+    }
+};
+
 // Update a product
 const updateProduct = async (req, res) => {
     try {
@@ -99,4 +150,4 @@ const deleteProduct = async (req, res) => {
     }
 };
 
-module.exports = { createProduct, getProducts, getProductByUserId, getProductById, updateProduct, deleteProduct };
+module.exports = { createProduct, getProducts, getProductByUserId, getProductById, updateProduct, deleteProduct, addImagesInProduct };
