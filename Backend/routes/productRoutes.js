@@ -1,11 +1,13 @@
 const express = require('express');
-const { createProduct, getProducts, getProductByUserId, updateProduct, deleteProduct, getProductById } = require('../controllers/productController');
+const { createProduct, getProducts, getProductByUserId, updateProduct, deleteProduct, getProductById, addImagesInProduct } = require('../controllers/productController');
 const upload = require('../config/multer');
 
 const router = express.Router();
 
 // POST /products - Create a new product with image upload
-router.post('/', upload.array('images', 5), createProduct); // 'images' is the field name, max 5 files
+router.post('/', createProduct);
+// PATCH /products/:productId/images - Add images to a product
+router.put('/:productId/images', upload.array('images', 5), addImagesInProduct);
 // GET /products - Get all products
 router.get('/', getProducts);
 // GET /products/:userId - Get products by User ID

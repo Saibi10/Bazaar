@@ -25,7 +25,6 @@ const API_URL = `${URL}/products`;
 
 interface ImageObject {
   uri: string;
-  // Add any other properties your image objects might have
   type?: string;
   name?: string;
   fileName?: string;
@@ -57,6 +56,7 @@ const MyProductsScreen = () => {
   const [category, setCategory] = useState("")
   const [brand, setBrand] = useState("")
   const [images, setImages] = useState<Array<string | ImageObject>>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   // Check if user is authenticated
   const isAuthenticated = userContext && userContext.user && userContext.token
@@ -103,31 +103,86 @@ const MyProductsScreen = () => {
   // Function to pick multiple images from the device
   const pickImages = async () => {
     if (images.length >= 5) {
-      Alert.alert("Limit Reached", "You can only upload up to 5 images.")
-      return
+      Alert.alert("Limit Reached", "You can only upload up to 5 images.");
+      return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-      allowsMultipleSelection: true, // Enable multiple selection
-    })
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+        allowsMultipleSelection: true,
+      });
 
-    if (!result.canceled) {
-      const selectedImages = result.assets.map((asset) => asset.uri) // Get URIs of all selected images
-      const remainingSlots = 5 - images.length // Calculate remaining slots
-      const newImages = selectedImages.slice(0, remainingSlots) // Limit to remaining slots
-      setImages([...images, ...newImages]) // Add new images to the array
+      if (!result.canceled) {
+        const selectedImages = result.assets.map((asset) => ({
+          uri: asset.uri,
+          type: 'image/jpeg',
+          name: `image_${Date.now()}.jpg`
+        }));
+
+        const remainingSlots = 5 - images.length;
+        const newImages = selectedImages.slice(0, remainingSlots);
+        setImages([...images, ...newImages]);
+      }
+    } catch (error: any) {
+      console.error("Error picking images:", error);
+      Alert.alert("Error", "Failed to pick images. Please try again.");
     }
-  }
+  };
 
   // Function to remove an image
   const removeImage = (index: number) => {
-    const newImages = images.filter((_, i) => i !== index)
-    setImages(newImages)
-  }
+    const newImages = images.filter((_, i) => i !== index);
+    setImages(newImages);
+  };
+
+  // Function to upload images
+  const uploadImages = async (productId: string) => {
+    if (images.length === 0) {
+      console.log('No images to upload');
+      return;
+    }
+
+    setUploadingImages(true);
+    try {
+      // Create a single FormData instance for all images
+      const formData = new FormData();
+
+      // Add all images to the same FormData instance
+      for (let i = 0; i < images.length; i++) {
+        const image = images[i];
+        const imageUri = typeof image === 'string' ? image : image.uri;
+
+        // Create a blob from the image URI
+        const response = await fetch(imageUri);
+        const blob = await response.blob();
+
+        // Append each image with the same field name 'images'
+        formData.append('images', blob, `image_${Date.now()}_${i}.jpg`);
+      }
+
+      // Send a single PUT request with all images
+      const response = await axios.put(`${API_URL}/${productId}/images`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${userContext?.token}`,
+        },
+      });
+
+      console.log('Images uploaded successfully:', response.data);
+    } catch (error: any) {
+      console.error('Error uploading images:', error);
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+      }
+      throw new Error('Failed to upload images');
+    } finally {
+      setUploadingImages(false);
+    }
+  };
 
   // Function to handle login redirect with gesture
   const handleLoginRedirect = () => {
@@ -187,6 +242,7 @@ const MyProductsScreen = () => {
 
         console.log("Request Body:", requestBody);
 
+        // First create the product
         const response = await axios.post(`${API_URL}/`, requestBody, {
           headers: {
             "Content-Type": "application/json",
@@ -195,6 +251,18 @@ const MyProductsScreen = () => {
         });
 
         console.log("Server response:", response.data);
+
+        // Get the product ID from the response
+        const productId = response.data.product?._id || response.data._id;
+
+        if (!productId) {
+          console.error("Response data:", response.data);
+          throw new Error("Failed to get product ID from response");
+        }
+
+        // Upload images
+        await uploadImages(productId);
+
         await fetchProducts();
         setModalVisible(false);
         clearForm();
@@ -510,9 +578,15 @@ const MyProductsScreen = () => {
                 {showImageUploader && (
                   <View>
                     <Text style={styles.inputLabel}>Images * (Max 5)</Text>
-                    <TouchableOpacity style={styles.imagePickerButton} onPress={pickImages}>
+                    <TouchableOpacity
+                      style={styles.imagePickerButton}
+                      onPress={pickImages}
+                      disabled={uploadingImages}
+                    >
                       <Ionicons name="image-outline" size={20} color="#fff" style={styles.buttonIcon} />
-                      <Text style={styles.imagePickerButtonText}>Upload Images</Text>
+                      <Text style={styles.imagePickerButtonText}>
+                        {uploadingImages ? 'Uploading...' : 'Upload Images'}
+                      </Text>
                     </TouchableOpacity>
                     <View style={styles.imageList}>
                       {images.map((image, index) => {
@@ -523,6 +597,7 @@ const MyProductsScreen = () => {
                             <TouchableOpacity
                               style={styles.removeImageButton}
                               onPress={() => removeImage(index)}
+                              disabled={uploadingImages}
                             >
                               <Ionicons name="close" size={16} color="#fff" />
                             </TouchableOpacity>
