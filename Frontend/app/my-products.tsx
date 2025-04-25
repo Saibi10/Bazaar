@@ -182,13 +182,7 @@ const MyProductsScreen = () => {
           price: price,
           description: productDescription,
           stock: quantity,
-          brand: brand,
-          images: images.map(image => {
-            // If image is already a string (path), use it directly
-            if (typeof image === 'string') return image;
-            // Otherwise, use the URI from the image object
-            return image.uri;
-          }),
+          brand: brand
         };
 
         console.log("Request Body:", requestBody);
