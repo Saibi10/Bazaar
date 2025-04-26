@@ -15,6 +15,8 @@ import {
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter, useLocalSearchParams } from "expo-router"
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import axios from "axios"
 
 // Define notification type
 interface NotificationType {
@@ -101,22 +103,144 @@ export default function PaymentDetails() {
   }
 
   // Handle form submission
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Set processing state
     setIsProcessing(true)
 
-    // Simulate payment processing
-    setTimeout(() => {
+    try {
+      // Check if user is authenticated
+      const userStr = await AsyncStorage.getItem('user')
+      const token = await AsyncStorage.getItem('token')
+      
+      if (!userStr || !token) {
+        showNotification("Please login to complete your purchase", "error")
+        setIsProcessing(false)
+        return
+      }
+
+      let user;
+      try {
+        user = JSON.parse(userStr)
+        console.log("User data:", user)
+      } catch (parseError) {
+        console.error("Error parsing user data:", parseError)
+        showNotification("Error with user data. Please login again.", "error")
+        setIsProcessing(false)
+        return
+      }
+
+      if (!user || !user._id) {
+        showNotification("Invalid user data. Please login again.", "error")
+        setIsProcessing(false)
+        return
+      }
+
+      // Clean the user ID to ensure it's properly formatted
+      const cleanUserId = user._id.trim()
+
+      // Fetch user's addresses using axios
+      try {
+        const URL = process.env.EXPO_PUBLIC_APIBASE_URL || 'http://localhost:5000/api';
+        console.log("Fetching addresses from:", `${URL}/addresses/${cleanUserId}`)
+
+        const addressResponse = await axios.get(`${URL}/addresses/${cleanUserId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+
+        console.log("Address response:", addressResponse.data)
+
+        const addresses = addressResponse.data
+        if (!Array.isArray(addresses) || addresses.length === 0) {
+          showNotification("No shipping addresses found. Please add an address first.", "error")
+          setIsProcessing(false)
+          return
+        }
+
+        const defaultAddress = addresses.find((addr) => addr.isDefault) || addresses[0]
+        console.log("Selected shipping address:", defaultAddress)
+
+        if (!defaultAddress || !defaultAddress._id) {
+          showNotification("Invalid shipping address. Please add a valid address.", "error")
+          setIsProcessing(false)
+          return
+        }
+
+        // Validate required order fields
+        if (!cleanUserId || !params.sellerId || !params.productId || !defaultAddress._id) {
+          console.error("Missing required fields:", {
+            buyer: cleanUserId,
+            seller: params.sellerId,
+            productId: params.productId,
+            shippingAddress: defaultAddress._id
+          })
+          showNotification("Missing required order information.", "error")
+          setIsProcessing(false)
+          return
+        }
+
+        // Create order with the address
+        const orderData = {
+          buyerId: cleanUserId,
+          sellerId: params.sellerId,
+          items: [{
+            product: params.productId,
+            quantity: parseInt(productQuantity) || 1,
+            price: parseFloat(productPrice) || 0
+          }],
+          totalAmount: parseFloat(total.toFixed(2)),
+          status: 'IN_PROGRESS',
+          paymentStatus: 'PAID',
+          shippingAddressId: defaultAddress._id
+        }
+
+        console.log("Submitting order with data:", orderData)
+
+        // Make API call to create order using axios
+        const orderResponse = await axios.post(`${URL}/orders`, orderData, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+
+        if (!orderResponse.data) {
+          throw new Error("No response data from order creation")
+        }
+
+        console.log("Order created successfully:", orderResponse.data)
+
+        // Show success notification
+        showNotification("Payment successful! Thank you for your purchase.")
+
+        // Navigate back to home after a delay
+        setTimeout(() => {
+          router.push("/")
+        }, 3500)
+
+      } catch (error) {
+        console.error('Error:', error)
+        if (axios.isAxiosError(error)) {
+          const errorMessage = error.response?.data?.message || error.message
+          console.error('Axios error details:', {
+            status: error.response?.status,
+            data: error.response?.data,
+            message: errorMessage
+          })
+          showNotification(errorMessage || "Error processing your order. Please try again.", "error")
+        } else {
+          console.error('Unexpected error:', error)
+          showNotification("An unexpected error occurred. Please try again.", "error")
+        }
+        setIsProcessing(false)
+      }
+
+    } catch (error) {
+      console.error('Error in handleSubmit:', error)
+      showNotification("Payment failed. Please try again.", "error")
       setIsProcessing(false)
-
-      // Show success notification
-      showNotification("Payment successful! Thank you for your purchase.")
-
-      // Navigate back to home after a delay
-      setTimeout(() => {
-        router.push("/")
-      }, 3500)
-    }, 1500)
+    }
   }
 
   // Handle payment method selection
@@ -304,7 +428,11 @@ export default function PaymentDetails() {
 
               <View style={styles.productSummary}>
                 <View style={styles.productImageContainer}>
-                  <View style={styles.productImagePlaceholder} />
+                  <Image 
+                    source={{ uri: typeof params.productImage === 'string' ? params.productImage : 'https://via.placeholder.com/150' }} 
+                    style={styles.productImage}
+                    resizeMode="cover"
+                  />
                 </View>
                 <View style={styles.productInfo}>
                   <Text style={styles.productName}>{productName}</Text>
@@ -556,10 +684,9 @@ const styles = StyleSheet.create({
   productImageContainer: {
     marginRight: 12,
   },
-  productImagePlaceholder: {
+  productImage: {
     width: 64,
     height: 64,
-    backgroundColor: "#2A2A2A",
     borderRadius: 8,
   },
   productInfo: {
