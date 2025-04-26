@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import {
   View,
   Text,
@@ -55,6 +55,11 @@ const sizeOptions = {
 // Color options
 const colorOptions = ["Black", "White", "Red", "Blue", "Green", "Yellow", "Purple", "Gray"]
 
+// Add this type guard function at the top level
+const isProductValid = (product: Product | null): product is Product => {
+  return product !== null && typeof product.stock === 'number';
+};
+
 const CategoryProductsScreen = () => {
   const insets = useSafeAreaInsets()
   const router = useRouter()
@@ -71,6 +76,7 @@ const CategoryProductsScreen = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [selectedSize, setSelectedSize] = useState<string>("")
   const [selectedColor, setSelectedColor] = useState<string>("")
+  
 
   // Fetch products from API
   useEffect(() => {
@@ -134,14 +140,27 @@ const CategoryProductsScreen = () => {
 
   // Handle buy button press
   const handleBuy = () => {
-    if (selectedProduct) {
+    if (isProductValid(selectedProduct)) {
       if (Number.parseInt(quantity) > selectedProduct.stock) {
         alert(`Only ${selectedProduct.stock} items are available in stock!`)
         return
       }
-      alert(
-        `You bought ${quantity} ${selectedProduct.name}(s) for $${selectedProduct.price} each!\nSize: ${selectedSize}, Color: ${selectedColor}`,
-      )
+
+      // Navigate to payment details page with all required product information
+      router.push({
+        pathname: "/payment_details",
+        params: {
+          productName: selectedProduct.name,
+          productPrice: selectedProduct.price.toString(),
+          quantity: quantity,
+          size: selectedSize,
+          color: selectedColor,
+          productId: selectedProduct._id,
+          sellerId: selectedProduct.userId,
+          productImage: selectedProduct.pics_url[0]
+        }
+      })
+
       setIsModalVisible(false)
       setSelectedProduct(null)
       setQuantity("1")
@@ -338,7 +357,7 @@ const CategoryProductsScreen = () => {
                 <Text style={styles.modalProductBrand}>{selectedProduct?.brand}</Text>
 
                 <Text style={styles.modalProductStock}>
-                  {selectedProduct?.stock > 0 ? `${selectedProduct.stock} in stock` : "Out of stock"}
+                  {isProductValid(selectedProduct) ? `${selectedProduct.stock} in stock` : "Out of stock"}
                 </Text>
 
                 {/* Product Description */}
@@ -426,7 +445,9 @@ const CategoryProductsScreen = () => {
                     onPress={handleBuy}
                     disabled={selectedProduct?.stock === 0}
                   >
-                    <Text style={styles.buttonText}>{selectedProduct?.stock > 0 ? "Buy Now" : "Out of Stock"}</Text>
+                    <Text style={styles.buttonText}>
+                      {isProductValid(selectedProduct) ? (selectedProduct.stock > 0 ? "Buy Now" : "Out of Stock") : "Out of Stock"}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
