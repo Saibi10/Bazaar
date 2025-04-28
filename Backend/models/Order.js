@@ -48,6 +48,9 @@ const orderSchema = new mongoose.Schema({
         ref: 'Address',
         required: true,
     },
+    returnReason: {
+        type: String,
+    },
 });
 
 const Order = mongoose.model('Order', orderSchema);
