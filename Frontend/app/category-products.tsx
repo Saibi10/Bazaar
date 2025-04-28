@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useContext } from "react"
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import axios from "axios"
 import { Ionicons } from "@expo/vector-icons"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useLocalSearchParams, useRouter } from "expo-router"
+import { UserContext } from "./context/userContext"
 
 // Define the Product type based on the MongoDB model
 interface Product {
@@ -65,6 +66,7 @@ const CategoryProductsScreen = () => {
   const router = useRouter()
   const { category } = useLocalSearchParams()
   const screenWidth = Dimensions.get("window").width
+  const { user } = useContext(UserContext)
 
   // States
   const [products, setProducts] = useState<Product[]>([])
@@ -76,7 +78,7 @@ const CategoryProductsScreen = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [selectedSize, setSelectedSize] = useState<string>("")
   const [selectedColor, setSelectedColor] = useState<string>("")
-  
+
 
   // Fetch products from API
   useEffect(() => {
@@ -88,11 +90,14 @@ const CategoryProductsScreen = () => {
         const response = await axios.get("http://localhost:5000/products");
 
         // Filter products by category if a category is specified
-        const filteredProducts = category
+        let filteredProducts = category
           ? response.data.filter((product: Product) =>
             product.category.includes(category as string)
           )
           : response.data;
+
+        // Filter out products where userId matches the current user's ID
+        filteredProducts = filteredProducts.filter((product: Product) => product.userId !== user?._id);
 
         setProducts(filteredProducts);
       } catch (err) {
@@ -107,7 +112,7 @@ const CategoryProductsScreen = () => {
     };
 
     fetchProducts();
-  }, [category]);
+  }, [category, user?._id]);
 
   // Handle product selection
   const handleProductPress = (product: Product) => {
