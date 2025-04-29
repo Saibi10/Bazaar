@@ -1,4 +1,4 @@
-import React, { useContext, useCallback } from 'react';
+import React, { useContext, useCallback, useState, useEffect, useRef } from 'react';
 import { useFocusEffect } from 'expo-router';
 import {
     View,
@@ -7,6 +7,9 @@ import {
     TouchableOpacity,
     ScrollView,
     TouchableWithoutFeedback,
+    RefreshControl,
+    ActivityIndicator,
+    Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,29 +18,99 @@ import { useRouter } from "expo-router";
 import { UserContext } from '../context/userContext';
 import Header from '../components/Header';
 
+// Define user type to fix TypeScript errors
+interface User {
+    _id: string;
+    name: string;
+    email: string;
+    [key: string]: any; // Allow any other properties
+}
+
 export default function ProfileScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const context = useContext(UserContext);
+    const userContext = useContext(UserContext);
+    const { user, token, logout, refreshUser, isLoading: contextLoading } = userContext || {};
+    const [refreshing, setRefreshing] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [initialLoadDone, setInitialLoadDone] = useState(false);
+    const lastRefreshTime = useRef(0);
+    const minRefreshInterval = 5000; // 5 seconds minimum between refreshes
 
-    const { user, token, logout, refreshUser } = context;
+    // Prevent too frequent refreshes
+    const canRefresh = useCallback(() => {
+        const now = Date.now();
+        if (now - lastRefreshTime.current > minRefreshInterval) {
+            lastRefreshTime.current = now;
+            return true;
+        }
+        return false;
+    }, []);
 
-    if (!context) {
-        console.error("UserContext is undefined. Make sure the provider is properly set up.");
-        return null; // Or show a loading spinner
-    }
+    // Function to handle refresh when the screen is pulled down
+    const onRefresh = useCallback(async () => {
+        if (!refreshUser || !token || refreshing) return;
 
+        setRefreshing(true);
+        try {
+            await refreshUser();
+            setInitialLoadDone(true);
+        } catch (error) {
+            console.error("Error refreshing profile:", error);
+            Alert.alert("Error", "Failed to refresh profile data");
+        } finally {
+            setRefreshing(false);
+            lastRefreshTime.current = Date.now();
+        }
+    }, [refreshUser, token, refreshing]);
+
+    // Function to refresh when the screen gains focus
+    const refreshOnFocus = useCallback(async () => {
+        if (!refreshUser || !token || isRefreshing) return;
+        if (!canRefresh()) return; // Don't refresh too frequently
+
+        setIsRefreshing(true);
+        try {
+            await refreshUser();
+            setInitialLoadDone(true);
+        } catch (error) {
+            console.error("Error refreshing on focus:", error);
+        } finally {
+            setIsRefreshing(false);
+        }
+    }, [refreshUser, token, isRefreshing, canRefresh]);
+
+    // Check if data is loaded initially
+    useEffect(() => {
+        if (!initialLoadDone && token && !contextLoading && canRefresh()) {
+            refreshOnFocus();
+        }
+    }, [initialLoadDone, token, contextLoading, refreshOnFocus, canRefresh]);
+
+    // Use useFocusEffect to refresh when screen comes into focus - with proper cleanup
     useFocusEffect(
         useCallback(() => {
-            console.log("Profile screen focused - refreshing data");
-            if (refreshUser) {
-                refreshUser(); // Call your refresh function
+            let isMounted = true;
+
+            if (isMounted && !isRefreshing && !initialLoadDone && canRefresh()) {
+                refreshOnFocus();
             }
 
-            // You can also force a re-render if needed
-            // Or fetch fresh data from your API
-        }, [refreshUser]) // Add dependencies here if needed
+            return () => {
+                isMounted = false;
+            };
+        }, [refreshOnFocus, isRefreshing, initialLoadDone, canRefresh])
     );
+
+    // Show loading state
+    if (contextLoading) {
+        return (
+            <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
+                <ActivityIndicator size="large" color="#9370DB" />
+                <Text style={styles.loadingText}>Loading profile...</Text>
+            </View>
+        );
+    }
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -46,7 +119,17 @@ export default function ProfileScreen() {
             {/* Header */}
             <Header title="Profile" />
 
-            <ScrollView contentContainerStyle={styles.contentContainer}>
+            <ScrollView
+                contentContainerStyle={styles.contentContainer}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor="#9370DB"
+                        colors={["#9370DB"]}
+                    />
+                }
+            >
                 {/* Profile Info */}
                 <View style={styles.profileSection}>
                     <View style={styles.avatarPlaceholder}>
@@ -54,14 +137,16 @@ export default function ProfileScreen() {
                     </View>
                     <View style={styles.profileInfo}>
                         <Text style={styles.profileName}>
-                            {user ? user.name : "Guest User"}
+                            {user ? (user as User).name : "Guest User"}
                         </Text>
                         {user ? (
                             <TouchableOpacity
                                 style={styles.logoutButton}
                                 onPress={() => {
-                                    logout();
-                                    router.push("/login");
+                                    if (logout) {
+                                        logout();
+                                        router.push("/login");
+                                    }
                                 }}
                             >
                                 <Text style={styles.loginButtonText}>Logout</Text>
@@ -154,6 +239,16 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#121212',
+    },
+    loadingContainer: {
+        flex: 1,
+        backgroundColor: '#121212',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
+        color: '#FFFFFF',
+        marginTop: 16,
     },
     header: {
         paddingHorizontal: 16,

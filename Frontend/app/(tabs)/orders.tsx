@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
 import {
     View,
     Text,
@@ -10,10 +10,11 @@ import {
     Pressable,
     TextInput,
     Image,
+    RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UserContext } from '../context/userContext';
 import axios from 'axios';
@@ -1067,72 +1068,159 @@ const returnStyles = StyleSheet.create({
     },
 });
 
+// User interface to fix type errors
+interface User {
+    _id: string;
+    name: string;
+    email: string;
+    [key: string]: any; // Allow any other properties
+}
+
 export default function OrdersScreen() {
-    const insets = useSafeAreaInsets();
     const router = useRouter();
-    const [selectedTab, setSelectedTab] = useState(orderStatuses[0].title);
+    const insets = useSafeAreaInsets();
+    const userContext = useContext(UserContext);
+    const { user, token, refreshUser } = userContext || {};
+    const typedUser = user as User | null;
     const [orders, setOrders] = useState<Order[]>([]);
+    const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [modalVisible, setModalVisible] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [selectedTab, setSelectedTab] = useState('IN PROGRESS');
+    const [tabs, setTabs] = useState(orderStatuses);
+    const [refreshing, setRefreshing] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [initialLoadDone, setInitialLoadDone] = useState(false);
+    const lastRefreshTime = useRef(0);
+    const minRefreshInterval = 5000; // 5 seconds minimum between refreshes
+
+    // Modal states
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+    const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [paymentModalVisible, setPaymentModalVisible] = useState(false);
     const [returnModalVisible, setReturnModalVisible] = useState(false);
-    const [confirmationVisible, setConfirmationVisible] = useState(false);
-    const context = useContext(UserContext);
-    const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+    const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
 
-    if (!context) {
-        console.error("UserContext is undefined. Make sure the provider is properly set up.");
-        return null;
-    }
+    // Prevent frequent refreshes
+    const canRefresh = useCallback(() => {
+        const now = Date.now();
+        if (now - lastRefreshTime.current > minRefreshInterval) {
+            lastRefreshTime.current = now;
+            return true;
+        }
+        return false;
+    }, []);
 
-    const { user, token } = context;
+    // Filter orders when tab changes
+    const filterOrdersByStatus = useCallback((orderList: Order[], status: string) => {
+        const filtered = orderList.filter(order => order.status === status);
+        setFilteredOrders(filtered);
+    }, []);
 
-    // Function to refresh orders data
-    const refreshOrders = () => {
-        // Increment refresh trigger to cause useEffect to run again
-        setRefreshTrigger(prev => prev + 1);
-    };
+    // Function to refresh orders from the API
+    const refreshOrders = useCallback(async () => {
+        if (!token || !typedUser) {
+            setLoading(false);
+            return;
+        }
 
-    useEffect(() => {
-        const fetchOrders = async () => {
-            try {
-                setLoading(true);
-                setError(null);
+        try {
+            setLoading(true);
+            setError(null); // Clear any previous errors
 
-                if (!user?._id || !token) {
-                    throw new Error('User not authenticated');
+            const response = await axios.get(`${API_URL}/orders/${typedUser._id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
                 }
+            });
 
-                const response = await axios.get(`${API_URL}/${user._id}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                // Filter orders based on active tab and sort by date (newest first)
-                const filteredOrders = response.data.filter((order: Order) => order.status === selectedTab);
-                const sortedOrders = filteredOrders.sort((a: Order, b: Order) => {
-                    return new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime();
-                });
-
-                setOrders(sortedOrders);
-            } catch (err: any) {
-                console.error('Failed to fetch orders:', err);
-                setError(
-                    err.response?.data?.message ||
-                    err.message ||
-                    'Failed to fetch orders'
-                );
-            } finally {
-                setLoading(false);
+            // Check if response data exists and is an array
+            if (response.data && Array.isArray(response.data)) {
+                setOrders(response.data);
+                filterOrdersByStatus(response.data, selectedTab);
+                setInitialLoadDone(true);
+            } else {
+                // Handle case where response exists but isn't an array of orders
+                console.log("Response data is not an array:", response.data);
+                setOrders([]);
+                setFilteredOrders([]);
             }
-        };
+        } catch (err) {
+            console.error("Error fetching orders:", err);
+            // Only set error for network/server errors, not for empty orders
+            if (axios.isAxiosError(err) && err.response?.status !== 404) {
+                setError("Failed to load your orders");
+            } else {
+                // If it's a 404 or other expected error, just set empty orders
+                setOrders([]);
+                setFilteredOrders([]);
+            }
+        } finally {
+            setLoading(false);
+        }
+    }, [token, typedUser, selectedTab, filterOrdersByStatus]);
 
-        fetchOrders();
-    }, [selectedTab, user?._id, token, refreshTrigger]);
+    // Initial load
+    useEffect(() => {
+        if (!initialLoadDone && token && typedUser) {
+            refreshOrders();
+        }
+    }, [refreshOrders, initialLoadDone, token, typedUser]);
+
+    // Handle tab changes
+    useEffect(() => {
+        if (orders.length > 0) {
+            filterOrdersByStatus(orders, selectedTab);
+        }
+    }, [selectedTab, filterOrdersByStatus, orders]);
+
+    // Function to refresh user data when the screen gains focus
+    const refreshOnFocus = useCallback(async () => {
+        if (!refreshUser || !token || isRefreshing || !typedUser) return;
+        if (!canRefresh()) return; // Don't refresh too frequently
+
+        setIsRefreshing(true);
+        try {
+            await refreshUser();
+        } catch (error) {
+            console.error("Error refreshing user data on focus:", error);
+        } finally {
+            setIsRefreshing(false);
+        }
+    }, [refreshUser, token, isRefreshing, typedUser, canRefresh]);
+
+    // Use useFocusEffect to refresh when screen comes into focus
+    useFocusEffect(
+        useCallback(() => {
+            let isMounted = true;
+
+            if (isMounted && !isRefreshing && canRefresh()) {
+                refreshOnFocus();
+            }
+
+            return () => {
+                isMounted = false;
+            };
+        }, [refreshOnFocus, isRefreshing, canRefresh])
+    );
+
+    // Handle pull-to-refresh
+    const onRefresh = useCallback(async () => {
+        if (refreshing) return;
+
+        setRefreshing(true);
+        try {
+            if (refreshUser && token) {
+                await refreshUser();
+            }
+            await refreshOrders();
+        } catch (error) {
+            console.error("Error during refresh:", error);
+        } finally {
+            setRefreshing(false);
+            lastRefreshTime.current = Date.now();
+        }
+    }, [refreshUser, token, refreshOrders, refreshing]);
 
     const handleTabPress = (tabTitle: string) => {
         setSelectedTab(tabTitle);
@@ -1162,17 +1250,17 @@ export default function OrdersScreen() {
 
     const handleOrderPress = (order: Order) => {
         setSelectedOrder(order);
-        setModalVisible(true);
+        setDetailModalVisible(true);
     };
 
     const handleCloseModal = () => {
-        setModalVisible(false);
+        setDetailModalVisible(false);
         setSelectedOrder(null);
     };
 
     const handlePayNow = () => {
         // Close the order details modal first, then open the payment modal
-        setModalVisible(false);
+        setDetailModalVisible(false);
         setTimeout(() => {
             setPaymentModalVisible(true);
         }, 300); // Small delay to ensure smooth transition
@@ -1182,7 +1270,7 @@ export default function OrdersScreen() {
         setPaymentModalVisible(false);
         // Reopen the order details modal if payment is canceled
         setTimeout(() => {
-            setModalVisible(true);
+            setDetailModalVisible(true);
         }, 300); // Small delay to ensure smooth transition
     };
 
@@ -1234,13 +1322,13 @@ export default function OrdersScreen() {
             setPaymentModalVisible(false);
             // Reopen the order details modal to show the error
             setTimeout(() => {
-                setModalVisible(true);
+                setDetailModalVisible(true);
             }, 300);
         }
     };
 
     const handleReturnOrder = () => {
-        setModalVisible(false);
+        setDetailModalVisible(false);
         setTimeout(() => {
             setReturnModalVisible(true);
         }, 300);
@@ -1249,7 +1337,7 @@ export default function OrdersScreen() {
     const handleCloseReturnModal = () => {
         setReturnModalVisible(false);
         setTimeout(() => {
-            setModalVisible(true);
+            setDetailModalVisible(true);
         }, 300);
     };
 
@@ -1295,22 +1383,22 @@ export default function OrdersScreen() {
             console.error('Return order error:', error);
             setReturnModalVisible(false);
             setTimeout(() => {
-                setModalVisible(true);
+                setDetailModalVisible(true);
             }, 300);
         }
     };
 
     const showCompletionConfirmation = () => {
-        setModalVisible(false); // Hide the order details modal
+        setDetailModalVisible(false); // Hide the order details modal
         setTimeout(() => {
-            setConfirmationVisible(true); // Show confirmation modal
+            setConfirmationModalVisible(true); // Show confirmation modal
         }, 300);
     };
 
     const handleCancelCompletion = () => {
-        setConfirmationVisible(false);
+        setConfirmationModalVisible(false);
         setTimeout(() => {
-            setModalVisible(true); // Reopen the order details modal
+            setDetailModalVisible(true); // Reopen the order details modal
         }, 300);
     };
 
@@ -1319,7 +1407,7 @@ export default function OrdersScreen() {
 
         try {
             // Close confirmation modal
-            setConfirmationVisible(false);
+            setConfirmationModalVisible(false);
 
             // Send PUT request to update order status to COMPLETED
             await axios.put(`${API_URL}/${selectedOrder._id}`,
@@ -1355,7 +1443,7 @@ export default function OrdersScreen() {
         <Modal
             animationType="fade"
             transparent={true}
-            visible={confirmationVisible}
+            visible={confirmationModalVisible}
             onRequestClose={handleCancelCompletion}
         >
             <View style={confirmationStyles.centeredView}>
@@ -1471,6 +1559,29 @@ export default function OrdersScreen() {
         },
     });
 
+    // If user is not logged in, show login prompt
+    if (!user || !token) {
+        return (
+            <View style={[styles.container, { paddingTop: insets.top }]}>
+                <StatusBar style="light" />
+                <Header title="Orders" />
+                <View style={styles.loginPromptContainer}>
+                    <Ionicons name="receipt-outline" size={64} color="#6C5CE7" />
+                    <Text style={styles.loginPromptTitle}>No Orders Found</Text>
+                    <Text style={styles.loginPromptText}>
+                        Please log in to view your orders
+                    </Text>
+                    <TouchableOpacity
+                        style={styles.loginButton}
+                        onPress={() => router.push("/login")}
+                    >
+                        <Text style={styles.loginButtonText}>Login / Register</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    }
+
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <StatusBar style="light" />
@@ -1478,83 +1589,95 @@ export default function OrdersScreen() {
             {/* Header */}
             <Header title="My Orders" />
 
-            {/* Order Status Tabs */}
-            <View style={styles.tabsContainer}>
-                {orderStatuses.map((status) => (
+            {/* Tab Navigation */}
+            <View style={styles.tabContainer}>
+                {tabs.map(tab => (
                     <TouchableOpacity
-                        key={status.id}
+                        key={tab.id}
                         style={[
-                            styles.tabButton,
-                            selectedTab === status.title && styles.activeTabButton,
+                            styles.tab,
+                            selectedTab === tab.title && styles.selectedTab
                         ]}
-                        onPress={() => handleTabPress(status.title)}
+                        onPress={() => handleTabPress(tab.title)}
                     >
-                        <Text
-                            style={[
-                                styles.tabButtonText,
-                                selectedTab === status.title && styles.activeTabButtonText,
-                            ]}
-                        >
-                            {getStatusDisplayText(status.title)}
+                        <Text style={[
+                            styles.tabText,
+                            selectedTab === tab.title && styles.selectedTabText
+                        ]}>
+                            {tab.title.replace('_', ' ')}
                         </Text>
                     </TouchableOpacity>
                 ))}
             </View>
 
             {/* Orders List */}
-            <ScrollView contentContainerStyle={styles.contentContainer}>
-                {loading ? (
-                    <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color="#9370DB" />
-                    </View>
-                ) : error ? (
-                    <View style={styles.emptyStateContainer}>
-                        <Text style={styles.errorText}>{error}</Text>
-                        <TouchableOpacity
-                            style={styles.retryButton}
-                            onPress={() => setSelectedTab(selectedTab)} // This will trigger the useEffect
-                        >
-                            <Text style={styles.retryButtonText}>Retry</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : orders.length === 0 ? (
-                    <View style={styles.emptyStateContainer}>
-                        <View style={styles.emptyStateImageContainer}>
-                            <Ionicons
-                                name={selectedTab === 'RETURNED' ? "return-down-back-outline" : "receipt-outline"}
-                                size={80}
-                                color="#9370DB"
-                            />
+            {loading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#6C5CE7" />
+                    <Text style={styles.loadingText}>Loading your orders...</Text>
+                </View>
+            ) : (
+                <ScrollView
+                    style={styles.ordersContainer}
+                    contentContainerStyle={styles.ordersContent}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            tintColor="#6C5CE7"
+                            colors={["#6C5CE7"]}
+                        />
+                    }
+                >
+                    {error ? (
+                        <View style={styles.errorContainer}>
+                            <Ionicons name="alert-circle-outline" size={64} color="#FF6B6B" />
+                            <Text style={styles.errorText}>{error}</Text>
+                            <TouchableOpacity style={styles.retryButton} onPress={refreshOrders}>
+                                <Text style={styles.retryButtonText}>Try Again</Text>
+                            </TouchableOpacity>
                         </View>
-                        <Text style={styles.emptyStateTitle}>
-                            No {getStatusDisplayText(selectedTab).toLowerCase()} orders
-                        </Text>
-                        <Text style={styles.emptyStateSubtitle}>
-                            You don't have any {getStatusDisplayText(selectedTab).toLowerCase()} orders yet
-                        </Text>
-                    </View>
-                ) : (
-                    <View style={styles.ordersContainer}>
-                        {orders.map((order) => (
-                            <OrderCard
-                                key={order._id}
-                                orderNumber={order._id.substring(0, 8).toUpperCase()}
-                                date={formatDate(order.orderDate)}
-                                items={order.items.reduce((acc, item) => acc + item.quantity, 0)}
-                                total={`$${order.totalAmount.toFixed(2)}`}
-                                status={getStatusDisplayText(order.status)}
-                                isDelivered={order.status === 'COMPLETED'}
-                                returnReason={order.returnReason}
-                                onPress={() => handleOrderPress(order)}
-                            />
-                        ))}
-                    </View>
-                )}
-            </ScrollView>
+                    ) : filteredOrders.length === 0 ? (
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="receipt-outline" size={64} color="#8A8A8A" />
+                            <Text style={styles.emptyTitle}>No {selectedTab.toLowerCase()} orders</Text>
+                            <Text style={styles.emptyText}>
+                                {selectedTab === 'IN PROGRESS'
+                                    ? 'You have no orders in progress'
+                                    : selectedTab === 'COMPLETED'
+                                        ? 'You have no completed orders'
+                                        : 'You have no returned orders'}
+                            </Text>
+                            <TouchableOpacity
+                                style={styles.shopButton}
+                                onPress={() => router.push("/(tabs)")}
+                            >
+                                <Text style={styles.shopButtonText}>Shop Now</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ) : (
+                        <>
+                            {filteredOrders.map(order => (
+                                <OrderCard
+                                    key={order._id}
+                                    orderNumber={order._id.substring(0, 8).toUpperCase()}
+                                    date={formatDate(order.orderDate)}
+                                    items={order.items.length}
+                                    total={`$${order.totalAmount.toFixed(2)}`}
+                                    status={getStatusDisplayText(order.status)}
+                                    isDelivered={order.status === 'COMPLETED'}
+                                    returnReason={order.returnReason}
+                                    onPress={() => handleOrderPress(order)}
+                                />
+                            ))}
+                        </>
+                    )}
+                </ScrollView>
+            )}
 
-            {/* Order Detail Modal */}
+            {/* Order Details Modal */}
             <OrderDetailModal
-                visible={modalVisible}
+                visible={detailModalVisible}
                 order={selectedOrder}
                 onClose={handleCloseModal}
                 onPay={handlePayNow}
@@ -1576,7 +1699,7 @@ export default function OrdersScreen() {
                 onSubmit={handleSubmitReturn}
             />
 
-            {/* Confirmation Modal */}
+            {/* Order Completion Confirmation Modal */}
             <ConfirmationModal />
         </View>
     );
@@ -1587,62 +1710,39 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#121212',
     },
-    tabsContainer: {
+    tabContainer: {
         flexDirection: 'row',
         padding: 16,
         gap: 8,
         marginTop: 8,
     },
-    tabButton: {
+    tab: {
         flex: 1,
         paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderRadius: 20,
-        backgroundColor: 'transparent',
+        paddingHorizontal: 8,
+        borderRadius: 8,
+        backgroundColor: '#2A2A2A',
         borderWidth: 1,
         borderColor: '#2A2A2A',
     },
-    activeTabButton: {
+    selectedTab: {
         backgroundColor: '#9370DB',
         borderColor: '#9370DB',
     },
-    tabButtonText: {
+    tabText: {
         color: '#FFFFFF',
         textAlign: 'center',
         fontSize: 14,
     },
-    activeTabButtonText: {
+    selectedTabText: {
         color: '#FFFFFF',
         fontWeight: '600',
     },
-    contentContainer: {
+    ordersContainer: {
         flexGrow: 1,
         padding: 16,
     },
-    emptyStateContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: 500,
-    },
-    emptyStateImageContainer: {
-        marginBottom: 24,
-        alignItems: 'center',
-    },
-    emptyStateTitle: {
-        color: '#FFFFFF',
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    emptyStateSubtitle: {
-        color: '#999999',
-        fontSize: 16,
-        textAlign: 'center',
-        maxWidth: '80%',
-    },
-    ordersContainer: {
+    ordersContent: {
         gap: 16,
     },
     loadingContainer: {
@@ -1650,20 +1750,98 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    loadingText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        marginTop: 16,
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 16,
+    },
     errorText: {
         color: '#FF6B6B',
         fontSize: 16,
+        marginTop: 8,
         marginBottom: 16,
         textAlign: 'center',
     },
     retryButton: {
         backgroundColor: '#9370DB',
-        paddingVertical: 12,
-        paddingHorizontal: 24,
+        paddingVertical: 8,
+        paddingHorizontal: 16,
         borderRadius: 8,
     },
     retryButtonText: {
         color: '#FFFFFF',
+        fontSize: 14,
         fontWeight: '600',
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+        minHeight: 400, // Ensure it takes up enough space
+    },
+    emptyTitle: {
+        color: '#FFFFFF',
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginTop: 16,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    emptyText: {
+        color: '#999999',
+        fontSize: 16,
+        textAlign: 'center',
+        maxWidth: '80%',
+        marginBottom: 24,
+    },
+    shopButton: {
+        backgroundColor: '#9370DB',
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 8,
+        marginTop: 8,
+    },
+    shopButtonText: {
+        color: '#FFFFFF',
+        fontWeight: '600',
+        fontSize: 16,
+    },
+    // Login prompt styles
+    loginPromptContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+    },
+    loginPromptTitle: {
+        color: '#FFFFFF',
+        fontSize: 22,
+        fontWeight: 'bold',
+        marginTop: 16,
+        marginBottom: 8,
+    },
+    loginPromptText: {
+        color: '#999999',
+        fontSize: 16,
+        textAlign: 'center',
+        marginBottom: 24,
+    },
+    loginButton: {
+        backgroundColor: '#9370DB',
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 8,
+    },
+    loginButtonText: {
+        color: '#FFFFFF',
+        fontWeight: '600',
+        fontSize: 16,
     },
 });
