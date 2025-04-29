@@ -52,42 +52,71 @@ const updateUserById = async (req, res) => {
     try {
         const userId = req.params.id;
 
+        console.log("Update request body:", req.body);
+
         const updates = req.body;
 
         // Handle password change if included
         if (updates.newPassword) {
+            console.log("Password change requested");
+
             // Verify current password
             const user = await User.findById(userId);
             if (!user) {
                 return res.status(404).json({ message: 'User not found' });
             }
 
-            const isMatch = await user.comparePassword(updates.currentPassword);
-            if (!isMatch) {
-                return res.status(400).json({ message: 'Current password is incorrect' });
+            if (!updates.currentPassword) {
+                return res.status(400).json({ message: 'Current password is required' });
             }
 
-            // Set new password and remove password fields from updates
-            user.password = updates.newPassword;
-            await user.save();
+            try {
+                const isMatch = await user.comparePassword(updates.currentPassword);
+                if (!isMatch) {
+                    return res.status(400).json({ message: 'Current password is incorrect' });
+                }
 
+                // Set new password
+                user.password = updates.newPassword;
+                console.log("New password set, saving...");
+                await user.save();
+                console.log("Password updated successfully");
+
+            } catch (passwordError) {
+                console.error("Password verification error:", passwordError);
+                return res.status(400).json({ message: 'Password verification failed', error: passwordError.message });
+            }
+
+            // Remove password fields from updates object
             delete updates.currentPassword;
             delete updates.newPassword;
         }
 
-        // Update other fields
-        const updatedUser = await User.findByIdAndUpdate(
-            userId,
-            updates,
-            { new: true, runValidators: true }
-        ).select('-password');
+        // Only proceed with other updates if there are any fields left to update
+        let updatedUser;
 
-        if (!updatedUser) {
-            return res.status(404).json({ message: 'User not found' });
+        if (Object.keys(updates).length > 0) {
+            console.log("Updating other fields:", Object.keys(updates));
+
+            // Update other fields
+            updatedUser = await User.findByIdAndUpdate(
+                userId,
+                updates,
+                { new: true, runValidators: true }
+            ).select('-password');
+
+            if (!updatedUser) {
+                return res.status(404).json({ message: 'User not found during update' });
+            }
+        } else {
+            // If only password was updated, we need to fetch the user again
+            updatedUser = await User.findById(userId).select('-password');
         }
 
+        console.log("User updated successfully");
         res.status(200).json(updatedUser);
     } catch (error) {
+        console.error("Error updating user:", error);
         res.status(500).json({ message: 'Error updating user', error: error.message });
     }
 };

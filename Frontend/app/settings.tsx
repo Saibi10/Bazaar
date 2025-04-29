@@ -139,51 +139,69 @@ const SettingsScreen = () => {
     setSuccess(null)
 
     try {
-      const formData = new FormData()
-
-      // Add text fields
-      formData.append("name", name)
-      formData.append("username", username)
-      formData.append("email", email)
-
-      // Only send password fields if trying to change password
+      // For password changes, we need to use JSON format instead of FormData
       if (newPassword && password) {
-        formData.append("currentPassword", password)
-        formData.append("newPassword", newPassword)
+        console.log("Submitting password change")
+        const passwordData = {
+          currentPassword: password,
+          newPassword: newPassword
+        }
+
+        // Send password update separately
+        const passwordResponse = await axios.put(`${API_URL}/${userContext.user._id}`, passwordData, {
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+
+        console.log("Password update response:", passwordResponse.data)
+
+        // Clear password fields after update
+        setPassword("")
+        setNewPassword("")
+        setConfirmPassword("")
       }
 
-      formData.append("notificationsEnabled", notificationsEnabled.toString())
-      formData.append("darkMode", darkMode.toString())
+      // Only continue with other profile updates if there are changes
+      if (name || username || avatar) {
+        const formData = new FormData()
 
-      // Add avatar if selected
-      if (avatar) {
-        const uriParts = avatar.split("/")
-        const fileName = uriParts[uriParts.length - 1]
-        const fileExtension = fileName.split(".").pop()
+        // Add text fields
+        if (name) formData.append("name", name)
+        if (username) formData.append("username", username)
 
-        const response = await fetch(avatar)
-        const blob = await response.blob()
+        formData.append("notificationsEnabled", notificationsEnabled.toString())
+        formData.append("darkMode", darkMode.toString())
 
-        formData.append("avatar", {
-          uri: avatar,
-          name: `avatar.${fileExtension}`,
-          type: `image/${fileExtension}`,
-        } as any)
+        // Add avatar if selected
+        if (avatar) {
+          const uriParts = avatar.split("/")
+          const fileName = uriParts[uriParts.length - 1]
+          const fileExtension = fileName.split(".").pop()
+
+          const response = await fetch(avatar)
+          const blob = await response.blob()
+
+          formData.append("avatar", {
+            uri: avatar,
+            name: `avatar.${fileExtension}`,
+            type: `image/${fileExtension}`,
+          } as any)
+        }
+
+        // Removed authorization header
+        const response = await axios.put(`${API_URL}/${userContext.user._id}`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        })
+
+        console.log("Profile update response:", response.data)
       }
-
-      const response = await axios.put(`${API_URL}/${userContext.user._id}`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      })
 
       setSuccess("Profile updated successfully!")
       userContext.refreshUser()
 
-      // Clear password fields after update
-      setPassword("")
-      setNewPassword("")
-      setConfirmPassword("")
     } catch (err: any) {
       console.error("Error updating profile:", err)
       const errorMessage = err.response?.data?.message || "Failed to update profile. Please try again."
