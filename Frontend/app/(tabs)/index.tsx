@@ -11,6 +11,7 @@ import {
   Dimensions,
   ImageBackground,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -54,6 +55,26 @@ const exploreCategories = [
   { id: '6', title: 'Sports', image: require('../../assets/images/emoji6.png'), color: '#E17055' },
 ];
 
+// Size options based on category
+const sizeOptions = {
+  clothing: ["XS", "S", "M", "L", "XL", "XXL"],
+  fashion: ["XS", "S", "M", "L", "XL", "XXL"],
+  style: ["XS", "S", "M", "L", "XL", "XXL"],
+  beauty: ["Small", "Medium", "Large"],
+  electronics: ["Standard"],
+  home: ["Small", "Medium", "Large"],
+  sports: ["XS", "S", "M", "L", "XL", "XXL"],
+  other: ["One Size"],
+};
+
+// Color options
+const colorOptions = ["Black", "White", "Red", "Blue", "Green", "Yellow", "Purple", "Gray"];
+
+// Add this type guard function
+const isProductValid = (product: Product | null): product is Product => {
+  return product !== null && typeof product.stock === 'number';
+};
+
 export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -63,6 +84,15 @@ export default function ExploreScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [visibleProductCount, setVisibleProductCount] = useState(10);
+  const screenWidth = Dimensions.get("window").width;
+
+  // Modal states
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [quantity, setQuantity] = useState("1");
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [selectedSize, setSelectedSize] = useState<string>("");
+  const [selectedColor, setSelectedColor] = useState<string>("");
 
   // Debugging: Check if context is undefined
   if (!context) {
@@ -77,7 +107,8 @@ export default function ExploreScreen() {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await axios.get("http://localhost:5000/products");
+        const URL = process.env.EXPO_PUBLIC_APIBASE_URL;
+        const response = await axios.get(`${URL}/products`);
 
         // Filter out products where userId matches the current user's ID
         let filteredProducts = response.data;
@@ -116,21 +147,76 @@ export default function ExploreScreen() {
     });
   };
 
-  // Handle product press
+  // Handle product press to show modal
   const handleProductPress = (product: Product) => {
-    router.push({
-      pathname: "/payment_details",
-      params: {
-        productName: product.name,
-        productPrice: product.price.toString(),
-        quantity: "1",
-        size: "Standard",
-        color: "Black",
-        productId: product._id,
-        sellerId: product.userId,
-        productImage: product.pics_url && product.pics_url.length > 0 ? product.pics_url[0] : 'https://via.placeholder.com/150'
+    setSelectedProduct(product);
+    setCurrentImageIndex(0);
+    // Set default size based on category
+    if (product.category.length > 0) {
+      const primaryCategory = product.category[0].toLowerCase();
+      const sizes = sizeOptions[primaryCategory as keyof typeof sizeOptions] || sizeOptions.other;
+      setSelectedSize(sizes[0]);
+    } else {
+      setSelectedSize(sizeOptions.other[0]);
+    }
+    setSelectedColor(colorOptions[0]);
+    setQuantity("1");
+    setIsModalVisible(true);
+  };
+
+  // Handle buy button press in modal
+  const handleBuy = () => {
+    if (isProductValid(selectedProduct)) {
+      if (Number.parseInt(quantity) > selectedProduct.stock) {
+        alert(`Only ${selectedProduct.stock} items are available in stock!`);
+        return;
       }
-    });
+
+      // Navigate to payment details page with all required product information
+      router.push({
+        pathname: "/payment_details",
+        params: {
+          productName: selectedProduct.name,
+          productPrice: selectedProduct.price.toString(),
+          quantity: quantity,
+          size: selectedSize,
+          color: selectedColor,
+          productId: selectedProduct._id,
+          sellerId: selectedProduct.userId,
+          productImage: selectedProduct.pics_url && selectedProduct.pics_url.length > 0
+            ? selectedProduct.pics_url[0]
+            : 'https://via.placeholder.com/150'
+        }
+      });
+
+      setIsModalVisible(false);
+      setSelectedProduct(null);
+      setQuantity("1");
+    }
+  };
+
+  // Handle add to cart
+  const handleAddToCart = () => {
+    if (selectedProduct) {
+      if (Number.parseInt(quantity) > selectedProduct.stock) {
+        alert(`Only ${selectedProduct.stock} items are available in stock!`);
+        return;
+      }
+      alert(`Added ${quantity} ${selectedProduct.name}(s) to cart!\nSize: ${selectedSize}, Color: ${selectedColor}`);
+    }
+  };
+
+  // Handle image navigation
+  const nextImage = () => {
+    if (selectedProduct && currentImageIndex < selectedProduct.pics_url.length - 1) {
+      setCurrentImageIndex(currentImageIndex + 1);
+    }
+  };
+
+  const prevImage = () => {
+    if (currentImageIndex > 0) {
+      setCurrentImageIndex(currentImageIndex - 1);
+    }
   };
 
   // Render stars for ratings
@@ -332,6 +418,194 @@ export default function ExploreScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Product Details Modal */}
+      <Modal
+        visible={isModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle} numberOfLines={1}>
+                {selectedProduct?.name}
+              </Text>
+              <TouchableOpacity onPress={() => setIsModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Product Image Carousel */}
+              <View style={styles.imageCarouselContainer}>
+                <Image
+                  source={{
+                    uri:
+                      selectedProduct?.pics_url && selectedProduct.pics_url.length > 0
+                        ? selectedProduct.pics_url[currentImageIndex]
+                        : "https://via.placeholder.com/300",
+                  }}
+                  style={[styles.modalProductImage, { width: screenWidth * 0.8 }]}
+                  resizeMode="cover"
+                />
+
+                {/* Image Navigation Buttons */}
+                {selectedProduct && selectedProduct.pics_url && selectedProduct.pics_url.length > 1 && (
+                  <View style={styles.imageNavigation}>
+                    <TouchableOpacity
+                      style={[styles.navButton, currentImageIndex === 0 && styles.navButtonDisabled]}
+                      onPress={prevImage}
+                      disabled={currentImageIndex === 0}
+                    >
+                      <Ionicons name="chevron-back" size={24} color={currentImageIndex === 0 ? "#555555" : "#FFFFFF"} />
+                    </TouchableOpacity>
+                    <Text style={styles.imageCounter}>
+                      {currentImageIndex + 1}/{selectedProduct.pics_url.length}
+                    </Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.navButton,
+                        currentImageIndex === selectedProduct.pics_url.length - 1 && styles.navButtonDisabled,
+                      ]}
+                      onPress={nextImage}
+                      disabled={currentImageIndex === selectedProduct.pics_url.length - 1}
+                    >
+                      <Ionicons
+                        name="chevron-forward"
+                        size={24}
+                        color={currentImageIndex === selectedProduct.pics_url.length - 1 ? "#555555" : "#FFFFFF"}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Thumbnail Preview */}
+                {selectedProduct && selectedProduct.pics_url && selectedProduct.pics_url.length > 1 && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbnailContainer}>
+                    {selectedProduct.pics_url.map((url, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        onPress={() => setCurrentImageIndex(index)}
+                        style={[styles.thumbnailWrapper, currentImageIndex === index && styles.activeThumbnail]}
+                      >
+                        <Image source={{ uri: url }} style={styles.thumbnail} />
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+              </View>
+
+              {/* Product Details */}
+              <View style={styles.productDetails}>
+                <View style={styles.priceRatingRow}>
+                  <Text style={styles.modalProductPrice}>${selectedProduct?.price}</Text>
+                  {selectedProduct && renderRatingStars(selectedProduct.ratings)}
+                </View>
+
+                <Text style={styles.modalProductBrand}>{selectedProduct?.brand}</Text>
+
+                <Text style={styles.modalProductStock}>
+                  {isProductValid(selectedProduct) ? `${selectedProduct.stock} in stock` : "Out of stock"}
+                </Text>
+
+                {/* Product Description */}
+                <Text style={styles.sectionTitle}>Description</Text>
+                <Text style={styles.modalProductDescription}>
+                  {selectedProduct?.description || "No description available."}
+                </Text>
+
+                {/* Size Selection */}
+                {selectedProduct && (
+                  <>
+                    <Text style={styles.sectionTitle}>Size</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.optionsContainer}>
+                      {(selectedProduct.category.length > 0
+                        ? sizeOptions[selectedProduct.category[0].toLowerCase() as keyof typeof sizeOptions] || sizeOptions.other
+                        : sizeOptions.other
+                      ).map((size) => (
+                        <TouchableOpacity
+                          key={size}
+                          style={[styles.optionButton, selectedSize === size && styles.selectedOption]}
+                          onPress={() => setSelectedSize(size)}
+                        >
+                          <Text style={[styles.optionText, selectedSize === size && styles.selectedOptionText]}>
+                            {size}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+
+                    {/* Color Selection */}
+                    <Text style={styles.sectionTitle}>Color</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.optionsContainer}>
+                      {colorOptions.map((color) => (
+                        <TouchableOpacity
+                          key={color}
+                          style={[
+                            styles.colorOption,
+                            { backgroundColor: color.toLowerCase() },
+                            selectedColor === color && styles.selectedColorOption,
+                          ]}
+                          onPress={() => setSelectedColor(color)}
+                        >
+                          {selectedColor === color && (
+                            <Ionicons
+                              name="checkmark"
+                              size={16}
+                              color={["White", "Yellow"].includes(color) ? "#000" : "#FFF"}
+                            />
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </>
+                )}
+
+                {/* Quantity Input */}
+                <Text style={styles.sectionTitle}>Quantity</Text>
+                <TextInput
+                  style={styles.quantityInput}
+                  placeholder="Quantity"
+                  placeholderTextColor="#8A8A8A"
+                  keyboardType="numeric"
+                  value={quantity}
+                  onChangeText={(text) => {
+                    // Only allow numbers
+                    const numericValue = text.replace(/[^0-9]/g, "");
+                    // Prevent empty input by defaulting to "1"
+                    setQuantity(numericValue === "" ? "1" : numericValue);
+                  }}
+                />
+
+                {/* Action Buttons */}
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity
+                    style={[styles.addToCartButton, selectedProduct?.stock === 0 && styles.buttonDisabled]}
+                    onPress={handleAddToCart}
+                    disabled={selectedProduct?.stock === 0}
+                  >
+                    <Ionicons name="cart" size={20} color="#FFFFFF" />
+                    <Text style={styles.buttonText}>Add to Cart</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.buyButton, selectedProduct?.stock === 0 && styles.buttonDisabled]}
+                    onPress={handleBuy}
+                    disabled={selectedProduct?.stock === 0}
+                  >
+                    <Text style={styles.buttonText}>
+                      {isProductValid(selectedProduct) ? (selectedProduct.stock > 0 ? "Buy Now" : "Out of Stock") : "Out of Stock"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -648,5 +922,197 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     marginRight: 8,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '90%',
+    maxHeight: '90%',
+    backgroundColor: '#1E1E1E',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2A2A2A',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    flex: 1,
+  },
+  imageCarouselContainer: {
+    alignItems: 'center',
+    backgroundColor: '#121212',
+    position: 'relative',
+  },
+  modalProductImage: {
+    height: 250,
+    borderRadius: 8,
+  },
+  imageNavigation: {
+    position: 'absolute',
+    bottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    paddingHorizontal: 16,
+  },
+  navButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  navButtonDisabled: {
+    opacity: 0.5,
+  },
+  imageCounter: {
+    color: '#FFFFFF',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    fontSize: 12,
+  },
+  thumbnailContainer: {
+    flexDirection: 'row',
+    paddingVertical: 8,
+  },
+  thumbnailWrapper: {
+    width: 60,
+    height: 60,
+    borderRadius: 4,
+    marginHorizontal: 4,
+    padding: 2,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  activeThumbnail: {
+    borderColor: '#9370DB',
+  },
+  thumbnail: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 2,
+  },
+  productDetails: {
+    padding: 16,
+  },
+  priceRatingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  modalProductPrice: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#9370DB',
+  },
+  modalProductBrand: {
+    fontSize: 14,
+    color: '#9370DB',
+    marginBottom: 4,
+  },
+  modalProductStock: {
+    fontSize: 14,
+    color: '#8A8A8A',
+    marginBottom: 16,
+  },
+  modalProductDescription: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  optionsContainer: {
+    marginBottom: 16,
+  },
+  optionButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#444444',
+    marginRight: 8,
+  },
+  selectedOption: {
+    borderColor: '#9370DB',
+    backgroundColor: 'rgba(147, 112, 219, 0.1)',
+  },
+  optionText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+  },
+  selectedOptionText: {
+    color: '#9370DB',
+    fontWeight: 'bold',
+  },
+  colorOption: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedColorOption: {
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  quantityInput: {
+    backgroundColor: '#2A2A2A',
+    borderWidth: 1,
+    borderColor: '#444444',
+    borderRadius: 8,
+    padding: 12,
+    color: '#FFFFFF',
+    fontSize: 14,
+    marginBottom: 16,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  addToCartButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2A2A2A',
+    borderRadius: 8,
+    padding: 12,
+    flex: 1,
+    marginRight: 8,
+  },
+  buyButton: {
+    backgroundColor: '#9370DB',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    marginLeft: 8,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
 });
