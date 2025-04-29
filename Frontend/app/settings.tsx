@@ -22,9 +22,30 @@ import * as ImagePicker from "expo-image-picker"
 
 const API_URL = `${process.env.EXPO_PUBLIC_APIBASE_URL}/users`;
 
+// Define user type based on the database model
+interface User {
+  _id: string;
+  name: string;
+  username: string;
+  email: string;
+  role: string;
+  addresses: string[];
+  orders: string[];
+}
+
+// Define custom UserContext type
+interface UserContextType {
+  user: User | null;
+  token: string | null;
+  isLoading: boolean;
+  login: (token: string, user: User) => void;
+  logout: () => void;
+  refreshUser: () => Promise<void>;
+}
+
 const SettingsScreen = () => {
   const router = useRouter()
-  const userContext = useContext(UserContext)
+  const userContext = useContext(UserContext) as UserContextType
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -33,11 +54,11 @@ const SettingsScreen = () => {
 
   // User settings state
   const [name, setName] = useState("")
+  const [username, setUsername] = useState("")
   const [email, setEmail] = useState("")
-  const [phone, setPhone] = useState("")
-  const [bio, setBio] = useState("")
-  const [shopName, setShopName] = useState("")
-  const [shopDescription, setShopDescription] = useState("")
+  const [password, setPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [notificationsEnabled, setNotificationsEnabled] = useState(true)
   const [darkMode, setDarkMode] = useState(true)
 
@@ -62,24 +83,16 @@ const SettingsScreen = () => {
   }, [])
 
   const fetchUserData = async () => {
-    if (!userContext || !userContext.token || !userContext.user) return
+    if (!userContext || !userContext.user) return
 
     setLoading(true)
     try {
-      const response = await axios.get(`${API_URL}/${userContext.user._id}`, {
-        headers: {
-          Authorization: `Bearer ${userContext.token}`,
-        },
-      })
+      const response = await axios.get(`${API_URL}/${userContext.user._id}`)
 
       const userData = response.data
       setName(userData.name || "")
+      setUsername(userData.username || "")
       setEmail(userData.email || "")
-      setPhone(userData.phone || "")
-      setBio(userData.bio || "")
-      setShopName(userData.shopName || "")
-      setShopDescription(userData.shopDescription || "")
-      setAvatar(userData.avatar || null)
       setNotificationsEnabled(userData.notificationsEnabled !== false)
       setDarkMode(userData.darkMode !== false)
     } catch (err) {
@@ -104,9 +117,21 @@ const SettingsScreen = () => {
   }
 
   const handleUpdateProfile = async () => {
-    if (!isAuthenticated) {
+    if (!userContext.user) {
       Alert.alert("Authentication Required", "You need to login to update your profile.")
       return
+    }
+
+    // Validate passwords if the user is trying to change it
+    if (newPassword) {
+      if (newPassword !== confirmPassword) {
+        setError("New passwords do not match")
+        return
+      }
+      if (!password) {
+        setError("Current password is required to set a new password")
+        return
+      }
     }
 
     setLoading(true)
@@ -118,11 +143,15 @@ const SettingsScreen = () => {
 
       // Add text fields
       formData.append("name", name)
+      formData.append("username", username)
       formData.append("email", email)
-      formData.append("phone", phone)
-      formData.append("bio", bio)
-      formData.append("shopName", shopName)
-      formData.append("shopDescription", shopDescription)
+
+      // Only send password fields if trying to change password
+      if (newPassword && password) {
+        formData.append("currentPassword", password)
+        formData.append("newPassword", newPassword)
+      }
+
       formData.append("notificationsEnabled", notificationsEnabled.toString())
       formData.append("darkMode", darkMode.toString())
 
@@ -145,17 +174,20 @@ const SettingsScreen = () => {
       const response = await axios.put(`${API_URL}/${userContext.user._id}`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${userContext.token}`,
         },
       })
 
       setSuccess("Profile updated successfully!")
-      if (userContext.setUser) {
-        userContext.setUser(response.data)
-      }
-    } catch (err) {
+      userContext.refreshUser()
+
+      // Clear password fields after update
+      setPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+    } catch (err: any) {
       console.error("Error updating profile:", err)
-      setError("Failed to update profile. Please try again.")
+      const errorMessage = err.response?.data?.message || "Failed to update profile. Please try again."
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -170,9 +202,7 @@ const SettingsScreen = () => {
       {
         text: "Logout",
         onPress: () => {
-          if (userContext.logout) {
-            userContext.logout()
-          }
+          userContext.logout()
           router.replace("/login")
         },
       },
@@ -189,20 +219,19 @@ const SettingsScreen = () => {
         text: "Delete",
         style: "destructive",
         onPress: async () => {
-          try {
-            await axios.delete(`${API_URL}/${userContext.user._id}`, {
-              headers: {
-                Authorization: `Bearer ${userContext.token}`,
-              },
-            })
+          if (!userContext.user) return
 
-            if (userContext.logout) {
-              userContext.logout()
-            }
+          setLoading(true)
+          try {
+            await axios.delete(`${API_URL}/${userContext.user._id}`)
+
+            userContext.logout()
             router.replace("/login")
-          } catch (err) {
+          } catch (err: any) {
             console.error("Error deleting account:", err)
-            setError("Failed to delete account. Please try again.")
+            const errorMessage = err.response?.data?.message || "Failed to delete account. Please try again."
+            setError(errorMessage)
+            setLoading(false)
           }
         },
       },
@@ -280,6 +309,15 @@ const SettingsScreen = () => {
             placeholderTextColor="#666"
           />
 
+          <Text style={styles.inputLabel}>Username</Text>
+          <TextInput
+            style={styles.input}
+            value={username}
+            onChangeText={setUsername}
+            placeholder="Your username"
+            placeholderTextColor="#666"
+          />
+
           <Text style={styles.inputLabel}>Email</Text>
           <TextInput
             style={styles.input}
@@ -290,50 +328,39 @@ const SettingsScreen = () => {
             keyboardType="email-address"
             editable={false} // Email shouldn't be editable in this view
           />
-
-          <Text style={styles.inputLabel}>Phone Number</Text>
-          <TextInput
-            style={styles.input}
-            value={phone}
-            onChangeText={setPhone}
-            placeholder="Your phone number"
-            placeholderTextColor="#666"
-            keyboardType="phone-pad"
-          />
-
-          <Text style={styles.inputLabel}>Bio</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={bio}
-            onChangeText={setBio}
-            placeholder="Tell us about yourself"
-            placeholderTextColor="#666"
-            multiline
-            numberOfLines={3}
-          />
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Shop Information</Text>
+          <Text style={styles.sectionTitle}>Change Password</Text>
 
-          <Text style={styles.inputLabel}>Shop Name</Text>
+          <Text style={styles.inputLabel}>Current Password</Text>
           <TextInput
             style={styles.input}
-            value={shopName}
-            onChangeText={setShopName}
-            placeholder="Your shop name"
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Enter current password"
             placeholderTextColor="#666"
+            secureTextEntry
           />
 
-          <Text style={styles.inputLabel}>Shop Description</Text>
+          <Text style={styles.inputLabel}>New Password</Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
-            value={shopDescription}
-            onChangeText={setShopDescription}
-            placeholder="Describe your shop"
+            style={styles.input}
+            value={newPassword}
+            onChangeText={setNewPassword}
+            placeholder="Enter new password"
             placeholderTextColor="#666"
-            multiline
-            numberOfLines={3}
+            secureTextEntry
+          />
+
+          <Text style={styles.inputLabel}>Confirm New Password</Text>
+          <TextInput
+            style={styles.input}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            placeholder="Confirm new password"
+            placeholderTextColor="#666"
+            secureTextEntry
           />
         </View>
 
