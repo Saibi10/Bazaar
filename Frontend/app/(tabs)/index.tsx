@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,11 +12,12 @@ import {
   ImageBackground,
   ActivityIndicator,
   Modal,
+  RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { UserContext } from '../context/userContext'; // Adjust the path as needed
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
@@ -43,6 +44,14 @@ interface Product {
   }[];
   createdAt: string;
   updatedAt: string;
+}
+
+// User interface to fix type errors
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  [key: string]: any; // Allow any other properties
 }
 
 // Sample categories
@@ -78,13 +87,20 @@ const isProductValid = (product: Product | null): product is Product => {
 export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const context = useContext(UserContext);
+  const userContext = useContext(UserContext);
+  const { user, token, refreshUser } = userContext || {};
+  const typedUser = user as User | null;
   const [products, setProducts] = useState<Product[]>([]);
   const [displayedProducts, setDisplayedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [visibleProductCount, setVisibleProductCount] = useState(10);
   const screenWidth = Dimensions.get("window").width;
+  const [refreshing, setRefreshing] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const lastRefreshTime = useRef(0); // To track when we last refreshed
+  const minRefreshInterval = 5000; // Minimum 5 seconds between refreshes
 
   // Modal states
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -94,43 +110,99 @@ export default function ExploreScreen() {
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [selectedColor, setSelectedColor] = useState<string>("");
 
-  // Debugging: Check if context is undefined
-  if (!context) {
-    console.error("UserContext is undefined. Make sure the provider is properly set up.");
-    return null; // Or show a loading spinner
-  }
-
-  const { user, token } = context;
-
   // Fetch products from API
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        const URL = process.env.EXPO_PUBLIC_APIBASE_URL;
-        const response = await axios.get(`${URL}/products`);
+  const fetchProducts = useCallback(async () => {
+    try {
+      setLoading(true);
+      const URL = process.env.EXPO_PUBLIC_APIBASE_URL;
+      const response = await axios.get(`${URL}/products`);
 
-        // Filter out products where userId matches the current user's ID
-        let filteredProducts = response.data;
-        if (user && user._id) {
-          filteredProducts = filteredProducts.filter((product: Product) => product.userId !== user._id);
-        }
-
-        // Shuffle the products array for randomization
-        const shuffledProducts = [...filteredProducts].sort(() => 0.5 - Math.random());
-
-        setProducts(shuffledProducts);
-        setDisplayedProducts(shuffledProducts.slice(0, visibleProductCount));
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching products:", err);
-        setError(err instanceof Error ? err.message : "Failed to fetch products");
-        setLoading(false);
+      // Filter out products where userId matches the current user's ID
+      let filteredProducts = response.data;
+      if (typedUser && typedUser._id) {
+        filteredProducts = filteredProducts.filter((product: Product) => product.userId !== typedUser._id);
       }
-    };
 
-    fetchProducts();
-  }, [user?._id]);
+      // Shuffle the products array for randomization
+      const shuffledProducts = [...filteredProducts].sort(() => 0.5 - Math.random());
+
+      setProducts(shuffledProducts);
+      setDisplayedProducts(shuffledProducts.slice(0, visibleProductCount));
+      setInitialLoadDone(true);
+    } catch (err) {
+      console.error("Error fetching products:", err);
+      setError(err instanceof Error ? err.message : "Failed to fetch products");
+    } finally {
+      setLoading(false);
+    }
+  }, [typedUser?._id, visibleProductCount]);
+
+  // Initial load - load data once when component mounts
+  useEffect(() => {
+    if (!initialLoadDone) {
+      fetchProducts();
+    }
+  }, [fetchProducts, initialLoadDone]);
+
+  // Prevent frequent refreshes by checking time since last refresh
+  const canRefresh = useCallback(() => {
+    const now = Date.now();
+    if (now - lastRefreshTime.current > minRefreshInterval) {
+      lastRefreshTime.current = now;
+      return true;
+    }
+    return false;
+  }, []);
+
+  // Function to refresh user data when the screen gains focus
+  const refreshOnFocus = useCallback(async () => {
+    // Guard clauses to prevent unnecessary refreshes
+    if (!refreshUser || !token || isRefreshing) return;
+    if (!canRefresh()) return;
+
+    setIsRefreshing(true);
+    try {
+      await refreshUser();
+    } catch (error) {
+      console.error("Error refreshing on focus:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refreshUser, token, isRefreshing, canRefresh]);
+
+  // Use useFocusEffect to refresh when screen comes into focus - with improved cleanup
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+
+      // Only refresh if this is the first load or explicit refresh
+      if (isMounted && !isRefreshing && canRefresh()) {
+        refreshOnFocus();
+      }
+
+      return () => {
+        isMounted = false;
+      };
+    }, [refreshOnFocus, isRefreshing, canRefresh])
+  );
+
+  // Handle user explicitly pulling to refresh - keep this unchanged, users expect pull-to-refresh
+  const onRefresh = useCallback(async () => {
+    if (refreshing) return;
+
+    setRefreshing(true);
+    try {
+      if (refreshUser && token) {
+        await refreshUser();
+      }
+      await fetchProducts();
+    } catch (error) {
+      console.error("Error during refresh:", error);
+    } finally {
+      setRefreshing(false);
+      lastRefreshTime.current = Date.now(); // Update last refresh time
+    }
+  }, [refreshUser, token, fetchProducts, refreshing]);
 
   // Show more products
   const handleShowMore = () => {
@@ -248,22 +320,19 @@ export default function ExploreScreen() {
       <StatusBar style="light" />
 
       {/* Header */}
-      <Header />
+      <Header title="Bazaar" />
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#8A8A8A" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Product Name/ Code/ Supplier"
-          placeholderTextColor="#8A8A8A"
-        />
-        <TouchableOpacity style={styles.filterButton}>
-          <Ionicons name="options-outline" size={20} color="#9370DB" />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#9370DB"
+            colors={["#9370DB"]}
+          />
+        }
+      >
         {/* Featured Discount Banner */}
         <View style={styles.bannerContainer}>
           <ImageBackground
@@ -1114,5 +1183,8 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: 'bold',
     marginLeft: 8,
+  },
+  contentContainer: {
+    padding: 16,
   },
 });

@@ -17,6 +17,7 @@ const createUser = async (req, res) => {
 // Get all users
 const getUser = async (req, res) => {
     try {
+        console.log("Requesting User");
         // Fetch the user by ID (attached to the request object by authMiddleware)
         const user = await User.findById(req.userId).select('-password'); // Exclude the password field
         if (!user) {
