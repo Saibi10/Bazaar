@@ -13,7 +13,7 @@ import {
   Image,
   Alert,
 } from "react-native"
-import { UserContext } from "./context/userContext"
+import { UserContext } from './context/userContext'
 import { Ionicons } from "@expo/vector-icons"
 import axios from "axios"
 import { useRouter } from "expo-router"
@@ -110,19 +110,30 @@ const MyProductsScreen = () => {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 1,
+        quality: 0.5, // Reduce quality to ensure smaller file sizes
         allowsMultipleSelection: true,
       });
 
       if (!result.canceled) {
-        const selectedImages = result.assets.map((asset) => ({
-          uri: asset.uri,
-          type: 'image/jpeg',
-          name: `image_${Date.now()}.jpg`
-        }));
+        console.log("Selected images count:", result.assets.length);
+        console.log("First image details:", result.assets[0]);
+
+        const selectedImages = result.assets.map((asset, index) => {
+          // Generate a unique name with timestamp for each image
+          const timestamp = Date.now();
+          const randomString = Math.random().toString(36).substring(2, 8);
+          const fileName = `product_image_${timestamp}_${randomString}_${index}.jpg`;
+
+          return {
+            uri: asset.uri,
+            type: 'image/jpeg', // Use consistent MIME type for all images
+            name: fileName,
+          };
+        });
 
         const remainingSlots = 5 - images.length;
         const newImages = selectedImages.slice(0, remainingSlots);
+        console.log("Adding images:", newImages.length);
         setImages([...images, ...newImages]);
       }
     } catch (error: any) {
@@ -149,24 +160,47 @@ const MyProductsScreen = () => {
       // Create a single FormData instance for all images
       const formData = new FormData();
 
-      // Add all images to the same FormData instance
+      console.log(`Preparing to upload ${images.length} images`);
+
+      // Add all images to the same FormData instance using a mobile-friendly approach
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
         const imageUri = typeof image === 'string' ? image : image.uri;
 
-        // Create a blob from the image URI
-        const response = await fetch(imageUri);
-        const blob = await response.blob();
+        console.log(`Processing image ${i + 1}: ${imageUri.substring(0, 50)}...`);
 
-        // Append each image with the same field name 'images'
-        formData.append('images', blob, `image_${Date.now()}_${i}.jpg`);
+        // Use a simpler approach for all platforms (especially mobile)
+        const fileType = typeof image === 'string' ? 'image/jpeg' : (image.type || 'image/jpeg');
+        const fileName = typeof image === 'string' ? `image_${Date.now()}_${i}.jpg` : (image.name || `image_${Date.now()}_${i}.jpg`);
+
+        console.log(`Image ${i + 1} details:`, { fileType, fileName });
+
+        // Append the image as a file object directly to formData
+        formData.append('images', {
+          uri: imageUri,
+          type: fileType,
+          name: fileName
+        } as any);
+      }
+
+      console.log('Sending image upload request...');
+
+      // Log the FormData keys to debug
+      // @ts-ignore
+      for (let pair of formData.entries()) {
+        console.log('FormData contains:', pair[0], pair[1]);
       }
 
       // Send a single PUT request with all images
       const response = await axios.put(`${API_URL}/${productId}/images`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
+          'Accept': 'application/json',
           Authorization: `Bearer ${userContext?.token}`,
+        },
+        transformRequest: (data, headers) => {
+          // Don't convert FormData to JSON
+          return formData;
         },
       });
 
@@ -174,7 +208,12 @@ const MyProductsScreen = () => {
     } catch (error: any) {
       console.error('Error uploading images:', error);
       if (error.response) {
-        console.error('Error response:', error.response.data);
+        console.error('Error response status:', error.response.status);
+        console.error('Error response data:', error.response.data);
+      } else if (error.request) {
+        console.error('Error request:', error.request);
+      } else {
+        console.error('Error message:', error.message);
       }
       throw new Error('Failed to upload images');
     } finally {
@@ -241,6 +280,7 @@ const MyProductsScreen = () => {
         console.log("Request Body:", requestBody);
 
         // First create the product
+        console.log("Creating product...");
         const response = await axios.post(`${API_URL}/`, requestBody, {
           headers: {
             "Content-Type": "application/json",
@@ -258,15 +298,43 @@ const MyProductsScreen = () => {
           throw new Error("Failed to get product ID from response");
         }
 
-        // Upload images
-        await uploadImages(productId);
+        console.log(`Product created with ID: ${productId}`);
+        console.log(`Selected images count: ${images.length}`);
 
+        if (images[0]) {
+          console.log(`First image type: ${typeof images[0]}`);
+          if (typeof images[0] !== 'string') {
+            console.log(`First image URI: ${images[0].uri.substring(0, 50)}...`);
+            console.log(`First image name: ${images[0].name}`);
+            console.log(`First image type: ${images[0].type}`);
+          }
+        }
+
+        // Upload images
+        try {
+          await uploadImages(productId);
+          console.log("Images uploaded successfully");
+        } catch (uploadError) {
+          console.error("Error uploading images, but product was created:", uploadError);
+          Alert.alert(
+            "Partial Success",
+            "Your product was created, but we couldn't upload the images. You can edit the product later to add images.",
+            [{ text: "OK" }]
+          );
+          await fetchProducts();
+          setModalVisible(false);
+          clearForm();
+          return;
+        }
+
+        Alert.alert("Success", "Product added successfully!");
         await fetchProducts();
         setModalVisible(false);
         clearForm();
       } catch (err) {
         console.error("Error adding product:", err);
         setError("Failed to add product. Please try again.");
+        Alert.alert("Error", "Failed to add product. Please try again.");
       } finally {
         setLoading(false);
       }
