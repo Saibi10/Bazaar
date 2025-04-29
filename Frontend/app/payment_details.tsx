@@ -140,7 +140,7 @@ export default function PaymentDetails() {
 
       // Fetch user's addresses using axios
       try {
-        const URL = process.env.EXPO_PUBLIC_APIBASE_URL || 'http://localhost:5000/api';
+        const URL = process.env.EXPO_PUBLIC_APIBASE_URL;
         console.log("Fetching addresses from:", `${URL}/addresses/${cleanUserId}`)
 
         const addressResponse = await axios.get(`${URL}/addresses/${cleanUserId}`, {
@@ -252,7 +252,7 @@ export default function PaymentDetails() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push("/category-products")} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>

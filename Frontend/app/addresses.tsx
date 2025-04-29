@@ -61,7 +61,7 @@ export default function AddressScreen() {
   const [submitting, setSubmitting] = useState(false)
   const [addressType, setAddressType] = useState("home")
 
-  const URL = process.env.EXPO_PUBLIC_APIBASE_URL;
+  const API_URL = `${process.env.EXPO_PUBLIC_APIBASE_URL}/addresses`;
 
   // Form state
   const [formData, setFormData] = useState<AddressFormData>({
@@ -116,7 +116,7 @@ export default function AddressScreen() {
     try {
       setLoading(true)
       console.log(user._id);
-      const response = await axios.get(`${URL}/addresses/${user._id}`, {
+      const response = await axios.get(`${API_URL}/${user._id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -181,7 +181,7 @@ export default function AddressScreen() {
 
       if (editingAddressId) {
         // Update existing address
-        await axios.put(`${URL}/addresses/${editingAddressId}`, jsonData, {
+        await axios.put(`${API_URL}/${editingAddressId}`, jsonData, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -189,7 +189,7 @@ export default function AddressScreen() {
         });
       } else {
         // Create new address
-        await axios.post(`${URL}/addresses`, jsonData, {
+        await axios.post(`${API_URL}`, jsonData, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -231,7 +231,7 @@ export default function AddressScreen() {
     setLoading(true);
     try {
       // Fetch the address details to populate the form
-      const response = await axios.get(`${URL}/addresses/${addressId}`, {
+      const response = await axios.get(`${API_URL}/${addressId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -289,7 +289,7 @@ export default function AddressScreen() {
           onPress: async () => {
             try {
               setLoading(true);
-              const response = await axios.delete(`${URL}/addresses/${user._id}/${addressId}`, {
+              const response = await axios.delete(`${API_URL}/${user._id}/${addressId}`, {
                 headers: {
                   Authorization: `Bearer ${token}`,
                 },

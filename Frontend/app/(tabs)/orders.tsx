@@ -52,8 +52,7 @@ const orderStatuses = [
     { id: '3', title: 'RETURNED', selected: false },
 ];
 
-const URL = process.env.EXPO_PUBLIC_APIBASE_URL;
-const API_URL = `${URL}/orders`;
+const API_URL = `${process.env.EXPO_PUBLIC_APIBASE_URL}/orders`;
 
 interface OrderCardProps {
     orderNumber: string;

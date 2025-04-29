@@ -85,9 +85,9 @@ const CategoryProductsScreen = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-
+        const URL = process.env.EXPO_PUBLIC_APIBASE_URL;
         // Use axios.get to fetch products
-        const response = await axios.get("http://localhost:5000/products");
+        const response = await axios.get(`${URL}/products`);
 
         // Filter products by category if a category is specified
         let filteredProducts = category

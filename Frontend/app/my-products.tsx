@@ -19,9 +19,7 @@ import axios from "axios"
 import { useRouter } from "expo-router"
 import * as ImagePicker from "expo-image-picker"
 
-const URL = process.env.EXPO_PUBLIC_APIBASE_URL;
-
-const API_URL = `${URL}/products`;
+const API_URL = `${process.env.EXPO_PUBLIC_APIBASE_URL}/products`;
 
 interface ImageObject {
   uri: string;

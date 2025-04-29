@@ -20,8 +20,7 @@ import axios from "axios"
 import { useRouter } from "expo-router"
 import * as ImagePicker from "expo-image-picker"
 
-const URL = process.env.EXPO_PUBLIC_APIBASE_URL;
-const API_URL = `${URL}/users`;
+const API_URL = `${process.env.EXPO_PUBLIC_APIBASE_URL}/users`;
 
 const SettingsScreen = () => {
   const router = useRouter()
@@ -72,7 +71,7 @@ const SettingsScreen = () => {
           Authorization: `Bearer ${userContext.token}`,
         },
       })
-      
+
       const userData = response.data
       setName(userData.name || "")
       setEmail(userData.email || "")
@@ -116,7 +115,7 @@ const SettingsScreen = () => {
 
     try {
       const formData = new FormData()
-      
+
       // Add text fields
       formData.append("name", name)
       formData.append("email", email)
@@ -196,7 +195,7 @@ const SettingsScreen = () => {
                 Authorization: `Bearer ${userContext.token}`,
               },
             })
-            
+
             if (userContext.logout) {
               userContext.logout()
             }
@@ -262,7 +261,7 @@ const SettingsScreen = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Profile</Text>
-          
+
           <TouchableOpacity style={styles.avatarContainer} onPress={pickAvatar}>
             {avatar ? (
               <Image source={{ uri: avatar }} style={styles.avatar} />
@@ -316,7 +315,7 @@ const SettingsScreen = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Shop Information</Text>
-          
+
           <Text style={styles.inputLabel}>Shop Name</Text>
           <TextInput
             style={styles.input}
@@ -340,7 +339,7 @@ const SettingsScreen = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Preferences</Text>
-          
+
           <View style={styles.switchContainer}>
             <Text style={styles.switchLabel}>Enable Notifications</Text>
             <Switch
@@ -364,21 +363,21 @@ const SettingsScreen = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
-          
+
           <TouchableOpacity style={styles.button} onPress={handleLogout}>
             <Text style={styles.buttonText}>Logout</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.button, styles.deleteButton]} 
+          <TouchableOpacity
+            style={[styles.button, styles.deleteButton]}
             onPress={() => setModalVisible(true)}
           >
             <Text style={[styles.buttonText, styles.deleteButtonText]}>Delete Account</Text>
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity 
-          style={styles.saveButton} 
+        <TouchableOpacity
+          style={styles.saveButton}
           onPress={handleUpdateProfile}
           disabled={loading}
         >
@@ -403,13 +402,13 @@ const SettingsScreen = () => {
                 Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed.
               </Text>
               <View style={styles.modalButtons}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.modalButton}
                   onPress={() => setModalVisible(false)}
                 >
                   <Text style={styles.modalButtonText}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.modalButton, styles.modalDeleteButton]}
                   onPress={handleDeleteAccount}
                 >
