@@ -1,17 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { StyleSheet, TextInput, TouchableOpacity, View, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { UserContext } from "./context/userContext";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { login } = useContext(UserContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -19,6 +21,7 @@ export default function LoginScreen() {
       return;
     }
 
+    setIsLoading(true);
     const URL = process.env.EXPO_PUBLIC_APIBASE_URL;
 
     try {
@@ -34,19 +37,21 @@ export default function LoginScreen() {
 
       if (!response.ok) {
         setError(data.message || "Login failed");
+        setIsLoading(false);
         return;
       }
 
-      // Store the token and user data in AsyncStorage
-      await AsyncStorage.setItem('token', data.token);
-      await AsyncStorage.setItem('user', JSON.stringify(data.user));
+      // Use the login function from UserContext
+      login(data.user, data.token);
 
       // Login successful
       console.log("Login successful:", data);
+      setIsLoading(false);
       router.push("/(tabs)");
     } catch (error) {
       console.error("Error during login:", error);
       setError("An error occurred. Please try again.");
+      setIsLoading(false);
     }
   };
 
@@ -81,8 +86,14 @@ export default function LoginScreen() {
       />
       {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <ThemedText style={styles.buttonText}>Login</ThemedText>
+      <TouchableOpacity
+        style={[styles.button, isLoading ? styles.buttonDisabled : null]}
+        onPress={handleLogin}
+        disabled={isLoading}
+      >
+        <ThemedText style={styles.buttonText}>
+          {isLoading ? "Logging in..." : "Login"}
+        </ThemedText>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.guestButton} onPress={handleGuestLogin}>
@@ -124,6 +135,9 @@ const styles = StyleSheet.create({
     marginTop: 20,
     width: "100%",
     alignItems: "center",
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     color: "white",
