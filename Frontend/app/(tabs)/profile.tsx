@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from "expo-router";
 import { UserContext } from '../context/userContext';
+import Header from '../components/Header';
 
 export default function ProfileScreen() {
     const insets = useSafeAreaInsets();
@@ -43,9 +44,7 @@ export default function ProfileScreen() {
             <StatusBar style="light" />
 
             {/* Header */}
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Profile</Text>
-            </View>
+            <Header title="Profile" />
 
             <ScrollView contentContainerStyle={styles.contentContainer}>
                 {/* Profile Info */}
@@ -127,13 +126,20 @@ export default function ProfileScreen() {
     );
 }
 
-function MenuItem({ icon, title, subtitle, route }) {
+interface MenuItemProps {
+    icon: any;
+    title: string;
+    subtitle: string;
+    route: any;
+}
+
+function MenuItem({ icon, title, subtitle, route }: MenuItemProps) {
     const router = useRouter();
 
     return (
-        <TouchableOpacity style={styles.menuItem} onPress={() => router.push(route)}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => router.push(route as any)}>
             <View style={styles.menuIconContainer}>
-                <Ionicons name={icon} size={24} color="#9370DB" />
+                <Ionicons name={icon as any} size={24} color="#9370DB" />
             </View>
             <View style={styles.menuTextContainer}>
                 <Text style={styles.menuTitle}>{title}</Text>

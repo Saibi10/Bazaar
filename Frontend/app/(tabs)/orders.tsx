@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UserContext } from '../context/userContext';
 import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
+import Header from '../components/Header';
 
 interface Order {
     _id: string;
@@ -1070,17 +1071,17 @@ const returnStyles = StyleSheet.create({
 export default function OrdersScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<string>('IN PROGRESS');
+    const [selectedTab, setSelectedTab] = useState(orderStatuses[0].title);
     const [orders, setOrders] = useState<Order[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [modalVisible, setModalVisible] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-    const [modalVisible, setModalVisible] = useState<boolean>(false);
-    const [paymentModalVisible, setPaymentModalVisible] = useState<boolean>(false);
-    const [returnModalVisible, setReturnModalVisible] = useState<boolean>(false);
+    const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+    const [returnModalVisible, setReturnModalVisible] = useState(false);
+    const [confirmationVisible, setConfirmationVisible] = useState(false);
     const context = useContext(UserContext);
     const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
-    const [confirmationModalVisible, setConfirmationModalVisible] = useState<boolean>(false);
 
     if (!context) {
         console.error("UserContext is undefined. Make sure the provider is properly set up.");
@@ -1113,7 +1114,7 @@ export default function OrdersScreen() {
                 });
 
                 // Filter orders based on active tab and sort by date (newest first)
-                const filteredOrders = response.data.filter((order: Order) => order.status === activeTab);
+                const filteredOrders = response.data.filter((order: Order) => order.status === selectedTab);
                 const sortedOrders = filteredOrders.sort((a: Order, b: Order) => {
                     return new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime();
                 });
@@ -1132,10 +1133,10 @@ export default function OrdersScreen() {
         };
 
         fetchOrders();
-    }, [activeTab, user?._id, token, refreshTrigger]);
+    }, [selectedTab, user?._id, token, refreshTrigger]);
 
     const handleTabPress = (tabTitle: string) => {
-        setActiveTab(tabTitle);
+        setSelectedTab(tabTitle);
     };
 
     const formatDate = (dateString: string) => {
@@ -1283,7 +1284,7 @@ export default function OrdersScreen() {
                 setSelectedOrder(updatedOrder);
 
                 // Remove order from the orders list (if currently in IN_PROGRESS tab)
-                if (activeTab === 'IN PROGRESS') {
+                if (selectedTab === 'IN PROGRESS') {
                     setOrders(prevOrders => prevOrders.filter(order => order._id !== selectedOrder._id));
                 }
             }
@@ -1303,12 +1304,12 @@ export default function OrdersScreen() {
     const showCompletionConfirmation = () => {
         setModalVisible(false); // Hide the order details modal
         setTimeout(() => {
-            setConfirmationModalVisible(true); // Show confirmation modal
+            setConfirmationVisible(true); // Show confirmation modal
         }, 300);
     };
 
     const handleCancelCompletion = () => {
-        setConfirmationModalVisible(false);
+        setConfirmationVisible(false);
         setTimeout(() => {
             setModalVisible(true); // Reopen the order details modal
         }, 300);
@@ -1319,7 +1320,7 @@ export default function OrdersScreen() {
 
         try {
             // Close confirmation modal
-            setConfirmationModalVisible(false);
+            setConfirmationVisible(false);
 
             // Send PUT request to update order status to COMPLETED
             await axios.put(`${API_URL}/${selectedOrder._id}`,
@@ -1338,7 +1339,7 @@ export default function OrdersScreen() {
                 setSelectedOrder(updatedOrder);
 
                 // Remove order from the orders list (if currently in IN_PROGRESS tab)
-                if (activeTab === 'IN PROGRESS') {
+                if (selectedTab === 'IN PROGRESS') {
                     setOrders(prevOrders => prevOrders.filter(order => order._id !== selectedOrder._id));
                 }
             }
@@ -1355,7 +1356,7 @@ export default function OrdersScreen() {
         <Modal
             animationType="fade"
             transparent={true}
-            visible={confirmationModalVisible}
+            visible={confirmationVisible}
             onRequestClose={handleCancelCompletion}
         >
             <View style={confirmationStyles.centeredView}>
@@ -1476,22 +1477,7 @@ export default function OrdersScreen() {
             <StatusBar style="light" />
 
             {/* Header */}
-            <View style={styles.header}>
-                <View style={styles.logoContainer}>
-                    <Text style={styles.logoText}>Bazaar</Text>
-                </View>
-                <View style={styles.headerIcons}>
-                    <TouchableOpacity style={styles.iconButton}>
-                        <Ionicons name="heart-outline" size={24} color="#FFFFFF" />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.iconButton}>
-                        <Ionicons name="notifications-outline" size={24} color="#FFFFFF" />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.iconButton}>
-                        <Ionicons name="cart-outline" size={24} color="#FFFFFF" />
-                    </TouchableOpacity>
-                </View>
-            </View>
+            <Header title="My Orders" />
 
             {/* Order Status Tabs */}
             <View style={styles.tabsContainer}>
@@ -1500,14 +1486,14 @@ export default function OrdersScreen() {
                         key={status.id}
                         style={[
                             styles.tabButton,
-                            activeTab === status.title && styles.activeTabButton,
+                            selectedTab === status.title && styles.activeTabButton,
                         ]}
                         onPress={() => handleTabPress(status.title)}
                     >
                         <Text
                             style={[
                                 styles.tabButtonText,
-                                activeTab === status.title && styles.activeTabButtonText,
+                                selectedTab === status.title && styles.activeTabButtonText,
                             ]}
                         >
                             {getStatusDisplayText(status.title)}
@@ -1527,7 +1513,7 @@ export default function OrdersScreen() {
                         <Text style={styles.errorText}>{error}</Text>
                         <TouchableOpacity
                             style={styles.retryButton}
-                            onPress={() => setActiveTab(activeTab)} // This will trigger the useEffect
+                            onPress={() => setSelectedTab(selectedTab)} // This will trigger the useEffect
                         >
                             <Text style={styles.retryButtonText}>Retry</Text>
                         </TouchableOpacity>
@@ -1536,16 +1522,16 @@ export default function OrdersScreen() {
                     <View style={styles.emptyStateContainer}>
                         <View style={styles.emptyStateImageContainer}>
                             <Ionicons
-                                name={activeTab === 'RETURNED' ? "return-down-back-outline" : "receipt-outline"}
+                                name={selectedTab === 'RETURNED' ? "return-down-back-outline" : "receipt-outline"}
                                 size={80}
                                 color="#9370DB"
                             />
                         </View>
                         <Text style={styles.emptyStateTitle}>
-                            No {getStatusDisplayText(activeTab).toLowerCase()} orders
+                            No {getStatusDisplayText(selectedTab).toLowerCase()} orders
                         </Text>
                         <Text style={styles.emptyStateSubtitle}>
-                            You don't have any {getStatusDisplayText(activeTab).toLowerCase()} orders yet
+                            You don't have any {getStatusDisplayText(selectedTab).toLowerCase()} orders yet
                         </Text>
                     </View>
                 ) : (
@@ -1601,28 +1587,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#121212',
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 16,
-    },
-    logoContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    logoText: {
-        color: '#FFFFFF',
-        fontSize: 24,
-        fontWeight: 'bold',
-    },
-    headerIcons: {
-        flexDirection: 'row',
-        gap: 16,
-    },
-    iconButton: {
-        padding: 8,
     },
     tabsContainer: {
         flexDirection: 'row',
