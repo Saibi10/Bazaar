@@ -211,22 +211,6 @@ const SettingsScreen = () => {
     }
   }
 
-  const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
-      {
-        text: "Logout",
-        onPress: () => {
-          userContext.logout()
-          router.replace("/login")
-        },
-      },
-    ])
-  }
-
   const handleDeleteAccount = () => {
     Alert.alert("Delete Account", "This will permanently delete your account and all your data. Are you sure?", [
       {
@@ -244,7 +228,10 @@ const SettingsScreen = () => {
             await axios.delete(`${API_URL}/${userContext.user._id}`)
 
             userContext.logout()
-            router.replace("/login")
+
+            // Navigate to login page directly
+            console.log("Account deleted, redirecting to login page...")
+            router.push("/login")
           } catch (err: any) {
             console.error("Error deleting account:", err)
             const errorMessage = err.response?.data?.message || "Failed to delete account. Please try again."
@@ -256,11 +243,17 @@ const SettingsScreen = () => {
     ])
   }
 
+  // Add a navigation handler to go back
+  const handleBackPress = () => {
+    console.log("Back button pressed, navigating to profile...")
+    router.push("/(tabs)/profile")
+  }
+
   if (!isAuthenticated) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Settings</Text>
@@ -282,7 +275,7 @@ const SettingsScreen = () => {
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Settings</Text>
@@ -408,10 +401,6 @@ const SettingsScreen = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
-
-          <TouchableOpacity style={styles.button} onPress={handleLogout}>
-            <Text style={styles.buttonText}>Logout</Text>
-          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.button, styles.deleteButton]}
