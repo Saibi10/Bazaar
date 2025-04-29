@@ -191,7 +191,7 @@ export default function PaymentDetails() {
           }],
           totalAmount: parseFloat(total.toFixed(2)),
           status: 'IN_PROGRESS',
-          paymentStatus: paymentMethod === 'klarna' ? 'PENDING' : 'PAID',
+          paymentStatus: paymentMethod === 'cod' ? 'PENDING' : 'PAID',
           shippingAddressId: defaultAddress._id
         }
 
@@ -252,7 +252,7 @@ export default function PaymentDetails() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.push("/category-products")} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
