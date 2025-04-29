@@ -111,7 +111,7 @@ export default function PaymentDetails() {
       // Check if user is authenticated
       const userStr = await AsyncStorage.getItem('user')
       const token = await AsyncStorage.getItem('token')
-      
+
       if (!userStr || !token) {
         showNotification("Please login to complete your purchase", "error")
         setIsProcessing(false)
@@ -191,7 +191,7 @@ export default function PaymentDetails() {
           }],
           totalAmount: parseFloat(total.toFixed(2)),
           status: 'IN_PROGRESS',
-          paymentStatus: 'PAID',
+          paymentStatus: paymentMethod === 'klarna' ? 'PENDING' : 'PAID',
           shippingAddressId: defaultAddress._id
         }
 
@@ -315,9 +315,20 @@ export default function PaymentDetails() {
                   <View style={styles.radioButton}>
                     {paymentMethod === "paypal" && <View style={styles.radioButtonInner} />}
                   </View>
-                  <Text style={styles.paymentOptionText}>PayPal</Text>
+                  <Text style={styles.paymentOptionText}>JazzCash/EasyPaisa</Text>
                 </View>
-                <View style={styles.paymentLogo} />
+                <View style={styles.paymentMethodImages}>
+                  <Image
+                    source={require('../assets/images/jazzcash.png')}
+                    style={styles.paymentMethodImage}
+                    resizeMode="contain"
+                  />
+                  <Image
+                    source={require('../assets/images/easypaisa.png')}
+                    style={styles.paymentMethodImage}
+                    resizeMode="contain"
+                  />
+                </View>
               </TouchableOpacity>
 
               {/* Credit Card Option */}
@@ -331,30 +342,41 @@ export default function PaymentDetails() {
                   </View>
                   <Text style={styles.paymentOptionText}>Credit card</Text>
                 </View>
-                <View style={styles.paymentCards}>
-                  <View style={styles.paymentCard} />
-                  <Image 
-                    source={require('../assets/images/paypal.png')} 
-                    style={styles.cardImage} 
-                    resizeMode="contain" 
+                <View style={styles.paymentMethodImages}>
+                  <Image
+                    source={require('../assets/images/visa.png')}
+                    style={styles.paymentMethodImage}
+                    resizeMode="contain"
                   />
-                  <View style={styles.paymentCard} />
-                  <View style={styles.paymentCard} />
+                  <Image
+                    source={require('../assets/images/mastercard.png')}
+                    style={styles.paymentMethodImage}
+                    resizeMode="contain"
+                  />
+                  <Image
+                    source={require('../assets/images/amex.png')}
+                    style={styles.paymentMethodImage}
+                    resizeMode="contain"
+                  />
                 </View>
               </TouchableOpacity>
 
               {/* Klarna Option */}
               <TouchableOpacity
-                style={[styles.paymentOption, paymentMethod === "klarna" && styles.paymentOptionSelected]}
-                onPress={() => handlePaymentMethodChange("klarna")}
+                style={[styles.paymentOption, paymentMethod === "cod" && styles.paymentOptionSelected]}
+                onPress={() => handlePaymentMethodChange("cod")}
               >
                 <View style={styles.paymentOptionLeft}>
                   <View style={styles.radioButton}>
-                    {paymentMethod === "klarna" && <View style={styles.radioButtonInner} />}
+                    {paymentMethod === "cod" && <View style={styles.radioButtonInner} />}
                   </View>
-                  <Text style={styles.paymentOptionText}>Buy now, pay later with Klarna</Text>
+                  <Text style={styles.paymentOptionText}>Cash On Delivery</Text>
                 </View>
-                <View style={styles.paymentLogo} />
+                <Image
+                  source={require('../assets/images/cod.png')}
+                  style={styles.paymentMethodImage}
+                  resizeMode="contain"
+                />
               </TouchableOpacity>
 
               {/* Credit Card Details */}
@@ -428,8 +450,8 @@ export default function PaymentDetails() {
 
               <View style={styles.productSummary}>
                 <View style={styles.productImageContainer}>
-                  <Image 
-                    source={{ uri: typeof params.productImage === 'string' ? params.productImage : 'https://via.placeholder.com/150' }} 
+                  <Image
+                    source={{ uri: typeof params.productImage === 'string' ? params.productImage : 'https://via.placeholder.com/150' }}
                     style={styles.productImage}
                     resizeMode="cover"
                   />
@@ -654,25 +676,15 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
   },
-  paymentCards: {
+  paymentMethodImages: {
     flexDirection: "row",
+    alignItems: "center",
   },
-  paymentCard: {
-    width: 36,
-    height: 24,
-    backgroundColor: "#444444",
-    borderRadius: 4,
+  paymentMethodImage: {
+    width: 40,
+    height: 25,
     marginLeft: 4,
-  },
-  cardImage: {
-    width: 36,
-    height: 24,
-  },
-  paymentLogo: {
-    width: 60,
-    height: 24,
-    backgroundColor: "#444444",
-    borderRadius: 4,
+    borderRadius: 2,
   },
   cardDetails: {
     marginTop: 8,
