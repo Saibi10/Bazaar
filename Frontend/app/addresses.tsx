@@ -11,6 +11,7 @@ import {
   Modal,
   ActivityIndicator,
   Alert,
+  RefreshControl,
 } from "react-native"
 import { UserContext } from "./context/userContext"
 import { StatusBar } from "expo-status-bar"
