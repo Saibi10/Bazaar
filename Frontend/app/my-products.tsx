@@ -84,7 +84,7 @@ const MyProductsScreen = () => {
 
     setLoadingProducts(true)
     try {
-      const response = await axios.get(`${API_URL}/user/${user._id}`, {
+      const response = await axios.get(`${API_URL}/user/${user?._id}`, {
         headers: {
           Authorization: `Bearer ${userContext.token}`,
         },
@@ -268,7 +268,7 @@ const MyProductsScreen = () => {
       try {
         // Prepare the request payload
         const requestBody = {
-          userId: user._id,
+          userId: user?._id,
           name: productName,
           category: category,
           price: price,
@@ -702,6 +702,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
+    paddingTop: 50,
     borderBottomWidth: 1,
     borderBottomColor: "#333",
   },

@@ -336,7 +336,7 @@ export default function ExploreScreen() {
         {/* Featured Discount Banner */}
         <View style={styles.bannerContainer}>
           <ImageBackground
-            source={{ uri: 'https://via.placeholder.com/600x300/9370DB/FFFFFF' }}
+            source={require('../../assets/images/banner-background.jpg')}
             style={styles.bannerImage}
             resizeMode="cover"
           >
@@ -486,14 +486,15 @@ export default function ExploreScreen() {
             </>
           )}
         </View>
-      </ScrollView>
+      </ScrollView >
 
       {/* Product Details Modal */}
-      <Modal
+      < Modal
         visible={isModalVisible}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setIsModalVisible(false)}
+        onRequestClose={() => setIsModalVisible(false)
+        }
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
@@ -674,8 +675,8 @@ export default function ExploreScreen() {
             </ScrollView>
           </View>
         </View>
-      </Modal>
-    </View>
+      </Modal >
+    </View >
   );
 }
 
