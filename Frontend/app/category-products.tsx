@@ -191,11 +191,11 @@ const CategoryProductsScreen = () => {
 
     for (let i = 0; i < 5; i++) {
       if (i < fullStars) {
-        stars.push(<Ionicons key={`star-${i}`} name="star" size={16} color="#FFD700" />)
+        stars.push(<Text key={`star-text-${i}`}><Ionicons key={`star-${i}`} name="star" size={16} color="#FFD700" /></Text>)
       } else if (i === fullStars && hasHalfStar) {
-        stars.push(<Ionicons key={`star-half-${i}`} name="star-half" size={16} color="#FFD700" />)
+        stars.push(<Text key={`star-half-text-${i}`}><Ionicons key={`star-half-${i}`} name="star-half" size={16} color="#FFD700" /></Text>)
       } else {
-        stars.push(<Ionicons key={`star-outline-${i}`} name="star-outline" size={16} color="#FFD700" />)
+        stars.push(<Text key={`star-outline-text-${i}`}><Ionicons key={`star-outline-${i}`} name="star-outline" size={16} color="#FFD700" /></Text>)
       }
     }
 
@@ -219,7 +219,9 @@ const CategoryProductsScreen = () => {
   if (error) {
     return (
       <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
-        <Ionicons name="alert-circle" size={48} color="#FF6B6B" />
+        <Text>
+          <Ionicons name="alert-circle" size={48} color="#FF6B6B" />
+        </Text>
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
           <Text style={styles.retryButtonText}>Go Back</Text>
@@ -233,18 +235,24 @@ const CategoryProductsScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          <Text>
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{category || "All Products"}</Text>
         <TouchableOpacity>
-          <Ionicons name="cart-outline" size={24} color="#FFFFFF" />
+          <Text>
+            <Ionicons name="cart-outline" size={24} color="#FFFFFF" />
+          </Text>
         </TouchableOpacity>
       </View>
 
       {/* Product List */}
       {products.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="basket-outline" size={64} color="#8A8A8A" />
+          <Text>
+            <Ionicons name="basket-outline" size={64} color="#8A8A8A" />
+          </Text>
           <Text style={styles.emptyText}>No products found</Text>
         </View>
       ) : (
@@ -288,7 +296,9 @@ const CategoryProductsScreen = () => {
                 {selectedProduct?.name}
               </Text>
               <TouchableOpacity onPress={() => setIsModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#FFFFFF" />
+                <Text>
+                  <Ionicons name="close" size={24} color="#FFFFFF" />
+                </Text>
               </TouchableOpacity>
             </View>
 
@@ -314,7 +324,9 @@ const CategoryProductsScreen = () => {
                       onPress={prevImage}
                       disabled={currentImageIndex === 0}
                     >
-                      <Ionicons name="chevron-back" size={24} color={currentImageIndex === 0 ? "#555555" : "#FFFFFF"} />
+                      <Text>
+                        <Ionicons name="chevron-back" size={24} color={currentImageIndex === 0 ? "#555555" : "#FFFFFF"} />
+                      </Text>
                     </TouchableOpacity>
                     <Text style={styles.imageCounter}>
                       {currentImageIndex + 1}/{selectedProduct.pics_url.length}
@@ -327,11 +339,13 @@ const CategoryProductsScreen = () => {
                       onPress={nextImage}
                       disabled={currentImageIndex === selectedProduct.pics_url.length - 1}
                     >
-                      <Ionicons
-                        name="chevron-forward"
-                        size={24}
-                        color={currentImageIndex === selectedProduct.pics_url.length - 1 ? "#555555" : "#FFFFFF"}
-                      />
+                      <Text>
+                        <Ionicons
+                          name="chevron-forward"
+                          size={24}
+                          color={currentImageIndex === selectedProduct.pics_url.length - 1 ? "#555555" : "#FFFFFF"}
+                        />
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -441,7 +455,9 @@ const CategoryProductsScreen = () => {
                     onPress={handleAddToCart}
                     disabled={selectedProduct?.stock === 0}
                   >
-                    <Ionicons name="cart" size={20} color="#FFFFFF" />
+                    <Text>
+                      <Ionicons name="cart" size={20} color="#FFFFFF" />
+                    </Text>
                     <Text style={styles.buttonText}>Add to Cart</Text>
                   </TouchableOpacity>
 
