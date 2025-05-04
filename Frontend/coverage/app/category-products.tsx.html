@@ -834,7 +834,23 @@
 <a name='L769'></a><a href='#L769'>769</a>
 <a name='L770'></a><a href='#L770'>770</a>
 <a name='L771'></a><a href='#L771'>771</a>
-<a name='L772'></a><a href='#L772'>772</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L772'></a><a href='#L772'>772</a>
+<a name='L773'></a><a href='#L773'>773</a>
+<a name='L774'></a><a href='#L774'>774</a>
+<a name='L775'></a><a href='#L775'>775</a>
+<a name='L776'></a><a href='#L776'>776</a>
+<a name='L777'></a><a href='#L777'>777</a>
+<a name='L778'></a><a href='#L778'>778</a>
+<a name='L779'></a><a href='#L779'>779</a>
+<a name='L780'></a><a href='#L780'>780</a>
+<a name='L781'></a><a href='#L781'>781</a>
+<a name='L782'></a><a href='#L782'>782</a>
+<a name='L783'></a><a href='#L783'>783</a>
+<a name='L784'></a><a href='#L784'>784</a>
+<a name='L785'></a><a href='#L785'>785</a>
+<a name='L786'></a><a href='#L786'>786</a>
+<a name='L787'></a><a href='#L787'>787</a>
+<a name='L788'></a><a href='#L788'>788</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1057,6 +1073,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1069,6 +1087,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1176,6 +1200,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1267,6 +1297,8 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1798,11 +1830,11 @@ const CategoryProductsScreen = <span class="cstat-no" title="statement not cover
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    for (let i = <span class="cstat-no" title="statement not covered" >0;</span> i &lt; 5; i++) {</span>
 <span class="cstat-no" title="statement not covered" >      if (i &lt; fullStars) {</span>
-<span class="cstat-no" title="statement not covered" >        stars.push(&lt;Ionicons key={`star-${i}`} name="star" size={16} color="#FFD700" /&gt;)</span>
+<span class="cstat-no" title="statement not covered" >        stars.push(&lt;Text key={`star-text-${i}`}&gt;&lt;Ionicons key={`star-${i}`} name="star" size={16} color="#FFD700" /&gt;&lt;/Text&gt;)</span>
       } else <span class="cstat-no" title="statement not covered" >if (i === fullStars &amp;&amp; hasHalfStar) {</span>
-<span class="cstat-no" title="statement not covered" >        stars.push(&lt;Ionicons key={`star-half-${i}`} name="star-half" size={16} color="#FFD700" /&gt;)</span>
+<span class="cstat-no" title="statement not covered" >        stars.push(&lt;Text key={`star-half-text-${i}`}&gt;&lt;Ionicons key={`star-half-${i}`} name="star-half" size={16} color="#FFD700" /&gt;&lt;/Text&gt;)</span>
       } else {
-<span class="cstat-no" title="statement not covered" >        stars.push(&lt;Ionicons key={`star-outline-${i}`} name="star-outline" size={16} color="#FFD700" /&gt;)</span>
+<span class="cstat-no" title="statement not covered" >        stars.push(&lt;Text key={`star-outline-text-${i}`}&gt;&lt;Ionicons key={`star-outline-${i}`} name="star-outline" size={16} color="#FFD700" /&gt;&lt;/Text&gt;)</span>
       }
     }
 &nbsp;
@@ -1826,7 +1858,9 @@ const CategoryProductsScreen = <span class="cstat-no" title="statement not cover
 <span class="cstat-no" title="statement not covered" >  if (error) {</span>
 <span class="cstat-no" title="statement not covered" >    return (</span>
       &lt;View style={[styles.container, styles.centered, { paddingTop: insets.top }]}&gt;
-        &lt;Ionicons name="alert-circle" size={48} color="#FF6B6B" /&gt;
+        &lt;Text&gt;
+          &lt;Ionicons name="alert-circle" size={48} color="#FF6B6B" /&gt;
+        &lt;/Text&gt;
         &lt;Text style={styles.errorText}&gt;{error}&lt;/Text&gt;
         &lt;TouchableOpacity style={styles.retryButton} onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >router.back()}</span>&gt;
           &lt;Text style={styles.retryButtonText}&gt;Go Back&lt;/Text&gt;
@@ -1840,18 +1874,24 @@ const CategoryProductsScreen = <span class="cstat-no" title="statement not cover
       {/* Header */}
       &lt;View style={styles.header}&gt;
         &lt;TouchableOpacity onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >router.back()}</span>&gt;
-          &lt;Ionicons name="arrow-back" size={24} color="#FFFFFF" /&gt;
+          &lt;Text&gt;
+            &lt;Ionicons name="arrow-back" size={24} color="#FFFFFF" /&gt;
+          &lt;/Text&gt;
         &lt;/TouchableOpacity&gt;
         &lt;Text style={styles.headerTitle}&gt;{category || "All Products"}&lt;/Text&gt;
         &lt;TouchableOpacity&gt;
-          &lt;Ionicons name="cart-outline" size={24} color="#FFFFFF" /&gt;
+          &lt;Text&gt;
+            &lt;Ionicons name="cart-outline" size={24} color="#FFFFFF" /&gt;
+          &lt;/Text&gt;
         &lt;/TouchableOpacity&gt;
       &lt;/View&gt;
 &nbsp;
       {/* Product List */}
       {products.length === 0 ? (
         &lt;View style={styles.emptyContainer}&gt;
-          &lt;Ionicons name="basket-outline" size={64} color="#8A8A8A" /&gt;
+          &lt;Text&gt;
+            &lt;Ionicons name="basket-outline" size={64} color="#8A8A8A" /&gt;
+          &lt;/Text&gt;
           &lt;Text style={styles.emptyText}&gt;No products found&lt;/Text&gt;
         &lt;/View&gt;
       ) : (
@@ -1895,7 +1935,9 @@ const CategoryProductsScreen = <span class="cstat-no" title="statement not cover
                 {selectedProduct?.name}
               &lt;/Text&gt;
               &lt;TouchableOpacity onPress={<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >setIsModalVisible(false)}</span>&gt;
-                &lt;Ionicons name="close" size={24} color="#FFFFFF" /&gt;
+                &lt;Text&gt;
+                  &lt;Ionicons name="close" size={24} color="#FFFFFF" /&gt;
+                &lt;/Text&gt;
               &lt;/TouchableOpacity&gt;
             &lt;/View&gt;
 &nbsp;
@@ -1921,7 +1963,9 @@ const CategoryProductsScreen = <span class="cstat-no" title="statement not cover
                       onPress={prevImage}
                       disabled={currentImageIndex === 0}
                     &gt;
-                      &lt;Ionicons name="chevron-back" size={24} color={currentImageIndex === 0 ? "#555555" : "#FFFFFF"} /&gt;
+                      &lt;Text&gt;
+                        &lt;Ionicons name="chevron-back" size={24} color={currentImageIndex === 0 ? "#555555" : "#FFFFFF"} /&gt;
+                      &lt;/Text&gt;
                     &lt;/TouchableOpacity&gt;
                     &lt;Text style={styles.imageCounter}&gt;
                       {currentImageIndex + 1}/{selectedProduct.pics_url.length}
@@ -1934,11 +1978,13 @@ const CategoryProductsScreen = <span class="cstat-no" title="statement not cover
                       onPress={nextImage}
                       disabled={currentImageIndex === selectedProduct.pics_url.length - 1}
                     &gt;
-                      &lt;Ionicons
-                        name="chevron-forward"
-                        size={24}
-                        color={currentImageIndex === selectedProduct.pics_url.length - 1 ? "#555555" : "#FFFFFF"}
-                      /&gt;
+                      &lt;Text&gt;
+                        &lt;Ionicons
+                          name="chevron-forward"
+                          size={24}
+                          color={currentImageIndex === selectedProduct.pics_url.length - 1 ? "#555555" : "#FFFFFF"}
+                        /&gt;
+                      &lt;/Text&gt;
                     &lt;/TouchableOpacity&gt;
                   &lt;/View&gt;
                 )}
@@ -2048,7 +2094,9 @@ const CategoryProductsScreen = <span class="cstat-no" title="statement not cover
                     onPress={handleAddToCart}
                     disabled={selectedProduct?.stock === 0}
                   &gt;
-                    &lt;Ionicons name="cart" size={20} color="#FFFFFF" /&gt;
+                    &lt;Text&gt;
+                      &lt;Ionicons name="cart" size={20} color="#FFFFFF" /&gt;
+                    &lt;/Text&gt;
                     &lt;Text style={styles.buttonText}&gt;Add to Cart&lt;/Text&gt;
                   &lt;/TouchableOpacity&gt;
 &nbsp;
@@ -2383,7 +2431,7 @@ export default CategoryProductsScreen
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-29T18:30:37.231Z
+                at 2025-05-04T15:41:33.780Z
             </div>
         <script src="../prettify.js"></script>
         <script>
