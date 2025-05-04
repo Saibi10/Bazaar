@@ -56,10 +56,6 @@ const getProductByUserId = async (req, res) => {
         const { userId } = req.params; // Extract userId from request parameters
         const products = await Product.find({ userId: userId }); // Find products associated with the userId
 
-        if (products.length === 0) {
-            return res.status(404).json({ message: 'No products found for this user' });
-        }
-
         res.status(200).json(products); // Return the list of products
     } catch (error) {
         res.status(500).json({ message: 'Error fetching products', error: error.message });

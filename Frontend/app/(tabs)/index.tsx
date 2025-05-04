@@ -299,11 +299,11 @@ export default function ExploreScreen() {
 
     for (let i = 0; i < 5; i++) {
       if (i < fullStars) {
-        stars.push(<Ionicons key={`star-${i}`} name="star" size={16} color="#FFD700" />);
+        stars.push(<Text key={`star-text-${i}`}><Ionicons key={`star-${i}`} name="star" size={16} color="#FFD700" /></Text>);
       } else if (i === fullStars && hasHalfStar) {
-        stars.push(<Ionicons key={`star-half-${i}`} name="star-half" size={16} color="#FFD700" />);
+        stars.push(<Text key={`star-half-text-${i}`}><Ionicons key={`star-half-${i}`} name="star-half" size={16} color="#FFD700" /></Text>);
       } else {
-        stars.push(<Ionicons key={`star-outline-${i}`} name="star-outline" size={16} color="#FFD700" />);
+        stars.push(<Text key={`star-outline-text-${i}`}><Ionicons key={`star-outline-${i}`} name="star-outline" size={16} color="#FFD700" /></Text>);
       }
     }
 
@@ -336,7 +336,7 @@ export default function ExploreScreen() {
         {/* Featured Discount Banner */}
         <View style={styles.bannerContainer}>
           <ImageBackground
-            source={{ uri: 'https://via.placeholder.com/600x300/9370DB/FFFFFF' }}
+            source={require('../../assets/images/banner-background.jpg')}
             style={styles.bannerImage}
             resizeMode="cover"
           >
@@ -384,18 +384,20 @@ export default function ExploreScreen() {
               >
                 <View style={[styles.categoryIconContainer, { backgroundColor: item.color + '20' }]}>
                   <View style={[styles.categoryIcon, { backgroundColor: item.color }]}>
-                    <Ionicons
-                      name={
-                        item.title === 'Electronics' ? 'phone-portrait-outline' :
-                          item.title === 'Fashion' ? 'shirt-outline' :
-                            item.title === 'Home & Living' ? 'home-outline' :
-                              item.title === 'Beauty' ? 'color-palette-outline' :
-                                item.title === 'Toys' ? 'game-controller-outline' :
-                                  'basketball-outline'
-                      }
-                      size={24}
-                      color="#FFFFFF"
-                    />
+                    <Text>
+                      <Ionicons
+                        name={
+                          item.title === 'Electronics' ? 'phone-portrait-outline' :
+                            item.title === 'Fashion' ? 'shirt-outline' :
+                              item.title === 'Home & Living' ? 'home-outline' :
+                                item.title === 'Beauty' ? 'color-palette-outline' :
+                                  item.title === 'Toys' ? 'game-controller-outline' :
+                                    'basketball-outline'
+                        }
+                        size={24}
+                        color="#FFFFFF"
+                      />
+                    </Text>
                   </View>
                 </View>
                 <Text style={styles.categoryTitle}>{item.title}</Text>
@@ -420,7 +422,9 @@ export default function ExploreScreen() {
             </View>
           ) : error ? (
             <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" />
+              <Text>
+                <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" />
+              </Text>
               <Text style={styles.errorText}>{error}</Text>
               <TouchableOpacity
                 style={styles.retryButton}
@@ -435,7 +439,9 @@ export default function ExploreScreen() {
             </View>
           ) : displayedProducts.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Ionicons name="basket-outline" size={48} color="#8A8A8A" />
+              <Text>
+                <Ionicons name="basket-outline" size={48} color="#8A8A8A" />
+              </Text>
               <Text style={styles.emptyText}>No products found</Text>
             </View>
           ) : (
@@ -458,7 +464,9 @@ export default function ExploreScreen() {
                         style={styles.productImage}
                       />
                       <TouchableOpacity style={styles.favoriteButton}>
-                        <Ionicons name="heart-outline" size={18} color="#FFFFFF" />
+                        <Text>
+                          <Ionicons name="heart-outline" size={18} color="#FFFFFF" />
+                        </Text>
                       </TouchableOpacity>
                     </View>
                     <View style={styles.productInfo}>
@@ -480,20 +488,23 @@ export default function ExploreScreen() {
               {displayedProducts.length < products.length && (
                 <TouchableOpacity style={styles.showMoreButton} onPress={handleShowMore}>
                   <Text style={styles.showMoreText}>Show More</Text>
-                  <Ionicons name="chevron-down" size={20} color="#FFFFFF" />
+                  <Text>
+                    <Ionicons name="chevron-down" size={20} color="#FFFFFF" />
+                  </Text>
                 </TouchableOpacity>
               )}
             </>
           )}
         </View>
-      </ScrollView>
+      </ScrollView >
 
       {/* Product Details Modal */}
-      <Modal
+      < Modal
         visible={isModalVisible}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setIsModalVisible(false)}
+        onRequestClose={() => setIsModalVisible(false)
+        }
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
@@ -503,7 +514,9 @@ export default function ExploreScreen() {
                 {selectedProduct?.name}
               </Text>
               <TouchableOpacity onPress={() => setIsModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#FFFFFF" />
+                <Text>
+                  <Ionicons name="close" size={24} color="#FFFFFF" />
+                </Text>
               </TouchableOpacity>
             </View>
 
@@ -529,7 +542,9 @@ export default function ExploreScreen() {
                       onPress={prevImage}
                       disabled={currentImageIndex === 0}
                     >
-                      <Ionicons name="chevron-back" size={24} color={currentImageIndex === 0 ? "#555555" : "#FFFFFF"} />
+                      <Text>
+                        <Ionicons name="chevron-back" size={24} color={currentImageIndex === 0 ? "#555555" : "#FFFFFF"} />
+                      </Text>
                     </TouchableOpacity>
                     <Text style={styles.imageCounter}>
                       {currentImageIndex + 1}/{selectedProduct.pics_url.length}
@@ -542,11 +557,13 @@ export default function ExploreScreen() {
                       onPress={nextImage}
                       disabled={currentImageIndex === selectedProduct.pics_url.length - 1}
                     >
-                      <Ionicons
-                        name="chevron-forward"
-                        size={24}
-                        color={currentImageIndex === selectedProduct.pics_url.length - 1 ? "#555555" : "#FFFFFF"}
-                      />
+                      <Text>
+                        <Ionicons
+                          name="chevron-forward"
+                          size={24}
+                          color={currentImageIndex === selectedProduct.pics_url.length - 1 ? "#555555" : "#FFFFFF"}
+                        />
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -621,11 +638,13 @@ export default function ExploreScreen() {
                           onPress={() => setSelectedColor(color)}
                         >
                           {selectedColor === color && (
-                            <Ionicons
-                              name="checkmark"
-                              size={16}
-                              color={["White", "Yellow"].includes(color) ? "#000" : "#FFF"}
-                            />
+                            <Text>
+                              <Ionicons
+                                name="checkmark"
+                                size={16}
+                                color={["White", "Yellow"].includes(color) ? "#000" : "#FFF"}
+                              />
+                            </Text>
                           )}
                         </TouchableOpacity>
                       ))}
@@ -656,7 +675,9 @@ export default function ExploreScreen() {
                     onPress={handleAddToCart}
                     disabled={selectedProduct?.stock === 0}
                   >
-                    <Ionicons name="cart" size={20} color="#FFFFFF" />
+                    <Text>
+                      <Ionicons name="cart" size={20} color="#FFFFFF" />
+                    </Text>
                     <Text style={styles.buttonText}>Add to Cart</Text>
                   </TouchableOpacity>
 
@@ -674,8 +695,8 @@ export default function ExploreScreen() {
             </ScrollView>
           </View>
         </View>
-      </Modal>
-    </View>
+      </Modal >
+    </View >
   );
 }
 
