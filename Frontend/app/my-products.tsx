@@ -28,9 +28,21 @@ interface ImageObject {
   fileName?: string;
 }
 
+// Add interface for UserContext
+interface UserContextType {
+  user: {
+    _id: string;
+    name?: string;
+    email?: string;
+    // Add other user properties as needed
+  } | null;
+  token: string | null;
+  // Add other context properties as needed
+}
+
 const MyProductsScreen = () => {
   const router = useRouter()
-  const userContext = useContext(UserContext)
+  const userContext = useContext(UserContext) as UserContextType | undefined
 
   if (!userContext) {
     console.error("UserContext is undefined. Make sure the provider is properly set up.");
@@ -80,11 +92,11 @@ const MyProductsScreen = () => {
 
   // Fetch products from the API
   const fetchProducts = async () => {
-    if (!userContext || !userContext.token) return
+    if (!userContext || !userContext.token || !userContext.user || !userContext.user._id) return
 
     setLoadingProducts(true)
     try {
-      const response = await axios.get(`${API_URL}/user/${user?._id}`, {
+      const response = await axios.get(`${API_URL}/user/${userContext.user._id}`, {
         headers: {
           Authorization: `Bearer ${userContext.token}`,
         },
@@ -118,17 +130,24 @@ const MyProductsScreen = () => {
         console.log("Selected images count:", result.assets.length);
         console.log("First image details:", result.assets[0]);
 
+        // Check if we're in a browser environment
+        const isBrowser = typeof window !== 'undefined' && typeof window.document !== 'undefined';
+
         const selectedImages = result.assets.map((asset, index) => {
           // Generate a unique name with timestamp for each image
           const timestamp = Date.now();
           const randomString = Math.random().toString(36).substring(2, 8);
           const fileName = `product_image_${timestamp}_${randomString}_${index}.jpg`;
 
-          return {
-            uri: asset.uri,
-            type: 'image/jpeg', // Use consistent MIME type for all images
-            name: fileName,
-          };
+          // For browser, we want to keep the URI as is
+          // For React Native, we need to include type and name
+          return isBrowser
+            ? asset.uri
+            : {
+              uri: asset.uri,
+              type: 'image/jpeg', // Use consistent MIME type for all images
+              name: fileName,
+            };
         });
 
         const remainingSlots = 5 - images.length;
@@ -162,45 +181,62 @@ const MyProductsScreen = () => {
 
       console.log(`Preparing to upload ${images.length} images`);
 
-      // Add all images to the same FormData instance using a mobile-friendly approach
+      // Check if we're running in a browser environment
+      const isBrowser = typeof window !== 'undefined' && typeof window.document !== 'undefined';
+
+      // Add all images to the FormData instance
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
         const imageUri = typeof image === 'string' ? image : image.uri;
 
         console.log(`Processing image ${i + 1}: ${imageUri.substring(0, 50)}...`);
 
-        // Use a simpler approach for all platforms (especially mobile)
-        const fileType = typeof image === 'string' ? 'image/jpeg' : (image.type || 'image/jpeg');
-        const fileName = typeof image === 'string' ? `image_${Date.now()}_${i}.jpg` : (image.name || `image_${Date.now()}_${i}.jpg`);
+        if (isBrowser) {
+          // For browser environment, we need to fetch the image and convert it to a blob
+          try {
+            const response = await fetch(imageUri);
+            const blob = await response.blob();
 
-        console.log(`Image ${i + 1} details:`, { fileType, fileName });
+            // Use a consistent naming convention
+            const fileName = `product_image_${Date.now()}_${i}.jpg`;
 
-        // Append the image as a file object directly to formData
-        formData.append('images', {
-          uri: imageUri,
-          type: fileType,
-          name: fileName
-        } as any);
+            // In browser, we can append the blob directly
+            formData.append('images', blob, fileName);
+            console.log(`Image ${i + 1} appended as blob with name: ${fileName}`);
+          } catch (fetchError) {
+            console.error(`Error fetching image ${i + 1}:`, fetchError);
+            throw new Error(`Error processing image ${i + 1}`);
+          }
+        } else {
+          // For React Native / mobile environment
+          const fileType = typeof image === 'string' ? 'image/jpeg' : (image.type || 'image/jpeg');
+          const fileName = typeof image === 'string' ? `image_${Date.now()}_${i}.jpg` : (image.name || `image_${Date.now()}_${i}.jpg`);
+
+          console.log(`Image ${i + 1} details:`, { fileType, fileName });
+
+          // Append the image as a file object directly to formData
+          formData.append('images', {
+            uri: imageUri,
+            type: fileType,
+            name: fileName
+          } as any);
+        }
       }
 
       console.log('Sending image upload request...');
 
-      // Log the FormData keys to debug
-      // @ts-ignore
-      for (let pair of formData.entries()) {
-        console.log('FormData contains:', pair[0], pair[1]);
+      // Debug FormData entries
+      if (typeof formData.entries === 'function') {
+        for (let pair of formData.entries()) {
+          console.log('FormData contains:', pair[0], typeof pair[1]);
+        }
       }
 
-      // Send a single PUT request with all images
+      // Send the request with Authorization header
       const response = await axios.put(`${API_URL}/${productId}/images`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'Accept': 'application/json',
-          Authorization: `Bearer ${userContext?.token}`,
-        },
-        transformRequest: (data, headers) => {
-          // Don't convert FormData to JSON
-          return formData;
+          'Authorization': `Bearer ${userContext?.token}`,
         },
       });
 
@@ -268,7 +304,7 @@ const MyProductsScreen = () => {
       try {
         // Prepare the request payload
         const requestBody = {
-          userId: user?._id,
+          userId: userContext.user?._id,
           name: productName,
           category: category,
           price: price,
