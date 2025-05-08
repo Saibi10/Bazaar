@@ -8,7 +8,7 @@
     "dev": "nodemon server.js",
     "test": "jest --testPathPattern=__tests__/basic/ --runInBand",
     "test:watch": "jest --testPathPattern=__tests__/basic/ --watch --runInBand",
-    "test:coverage": "jest --testPathPattern=__tests__/basic/ --coverage --runInBand",
+    "test:coverage": "jest --coverage --runInBand",
     "test:models": "jest --testPathPattern=__tests__/models/",
     "test:controllers": "jest --testPathPattern=__tests__/controllers/",
     "test:config": "jest --testPathPattern=__tests__/config/",

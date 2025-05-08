@@ -10,7 +10,12 @@ jest.setTimeout(120000); // 2 minutes to allow for MongoDB download/startup
 beforeAll(async () => {
     mongoServer = await MongoMemoryServer.create({
         binary: {
-            version: '6.0.9' // Specify a specific version to avoid compatibility issues
+            version: '6.0.9',
+            downloadDir: './.mongodb-memory-server', // Cache directory
+            checkMD5: false // Skip MD5 check to speed up startup
+        },
+        instance: {
+            storageEngine: 'wiredTiger'
         }
     });
     const uri = mongoServer.getUri();
